@@ -25,7 +25,6 @@ function updateUI(usuario) {
     if (!userMenu) return;
 
     if (!usuario) {
-        // SIN SESIÓN
         userMenu.innerHTML = `
             <div class="avatar" id="avatar-login" title="Iniciar sesión">
                 <svg viewBox="0 0 100 100" width="40" height="40">
@@ -38,8 +37,8 @@ function updateUI(usuario) {
         if(navDashboard) navDashboard.style.display = 'none';
         if(navRegistro) navRegistro.style.display = 'none';
         if(navLibros) navLibros.style.display = 'none';
+        if(navCatalogo) navCatalogo.style.display = 'none';
     } else {
-        // CON SESIÓN
         userMenu.innerHTML = `
             <div class="user-info">
                 <span>Hola, ${usuario.nombre}</span>
@@ -56,10 +55,9 @@ function updateUI(usuario) {
             if(navDashboard) navDashboard.style.display = 'block';
             if(navRegistro) navRegistro.style.display = 'block';
             if(navLibros) navLibros.style.display = 'block';
+            if(navCatalogo) navCatalogo.style.display = 'none';
         } else {
-            // ALUMNOS - Mostrar Catálogo
-            const navCatalogo = document.querySelector('a[href="/catalogo"]');
-            if (navCatalogo) navCatalogo.style.display = 'block';
+            if(navCatalogo) navCatalogo.style.display = 'block';
         }
     }
 }
