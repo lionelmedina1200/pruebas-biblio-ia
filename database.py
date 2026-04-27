@@ -6,11 +6,24 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
-    """Conectar a PostgreSQL con SSL (requerido por Supabase)"""
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+    """Conectar a PostgreSQL con SSL y forzar IPv4"""
+    from urllib.parse import urlparse
+    
+    # Parsear la URI de Supabase
+    parsed = urlparse(DATABASE_URL)
+    
+    # Forzar conexión por IPv4 usando el hostname directamente
+    conn = psycopg2.connect(
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        database=parsed.path.lstrip('/'),
+        user=parsed.username,
+        password=parsed.password,
+        sslmode='require',
+        options='-c timezone=UTC'  # Opcional: evitar problemas de zona horaria
+    )
     conn.row_factory = psycopg2.extras.RealDictRow
     return conn
-
 def init_db():
     conn = get_db()
     c = conn.cursor()
