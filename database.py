@@ -6,24 +6,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
-    """Conectar a PostgreSQL con SSL y forzar IPv4"""
-    from urllib.parse import urlparse
-    
-    # Parsear la URI de Supabase
-    parsed = urlparse(DATABASE_URL)
-    
-    # Forzar conexión por IPv4 usando el hostname directamente
-    conn = psycopg2.connect(
-        host=parsed.hostname,
-        port=parsed.port or 5432,
-        database=parsed.path.lstrip('/'),
-        user=parsed.username,
-        password=parsed.password,
-        sslmode='require',
-        options='-c timezone=UTC'  # Opcional: evitar problemas de zona horaria
-    )
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     conn.row_factory = psycopg2.extras.RealDictRow
     return conn
+
 def init_db():
     conn = get_db()
     c = conn.cursor()
@@ -38,7 +24,7 @@ def init_db():
         activo INTEGER DEFAULT 1,
         fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
-
+    
     c.execute("""CREATE TABLE IF NOT EXISTS libros (
         id SERIAL PRIMARY KEY,
         titulo TEXT NOT NULL,
@@ -52,7 +38,7 @@ def init_db():
         ubicacion TEXT,
         fecha_alta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
-
+    
     c.execute("""CREATE TABLE IF NOT EXISTS reservas (
         id SERIAL PRIMARY KEY,
         usuario_id INTEGER REFERENCES usuarios(id),
@@ -62,22 +48,21 @@ def init_db():
         fecha_reserva TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         estado TEXT DEFAULT 'pendiente'
     )""")
-
+    
     c.execute("""CREATE TABLE IF NOT EXISTS metricas (
         id SERIAL PRIMARY KEY,
         consulta TEXT,
         resultados INTEGER,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
-
-    # CORRECCIÓN: Usar alias "as count" para acceder correctamente
+    
     c.execute("SELECT COUNT(*) as count FROM usuarios WHERE rol = %s", ('bibliotecario',))
     if c.fetchone()['count'] == 0:
         hashed_pw = generate_password_hash("biblio123", method='pbkdf2:sha256')
         c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol) 
                      VALUES (%s, %s, %s, %s, %s)""",
                   ("biblio", hashed_pw, "Bibliotecaria", "biblio@biblioteca.com", "bibliotecario"))
-
+    
     conn.commit()
     conn.close()
 
@@ -108,4 +93,3 @@ def registrar_usuario(username, password, nombre, email, rol="alumno"):
 if __name__ == "__main__":
     init_db()
     print("✅ Base de datos PostgreSQL inicializada correctamente.")
-    print("📝 Usuario Bibliotecaria: biblio / biblio123")
