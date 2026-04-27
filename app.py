@@ -95,18 +95,22 @@ def api_libros():
     like = f"%{busqueda}%"
 
     if busqueda:
-        c.execute("SELECT COUNT(*) FROM libros WHERE titulo LIKE ? OR autor LIKE ? OR categoria LIKE ?", (like, like, like))
+        # CAMBIO: ? -> %s para PostgreSQL
+        c.execute("SELECT COUNT(*) FROM libros WHERE titulo LIKE %s OR autor LIKE %s OR categoria LIKE %s", (like, like, like))
     else:
         c.execute("SELECT COUNT(*) FROM libros")
     
-    total = c.fetchone()[0]
+    # CAMBIO: psycopg2 devuelve diccionario con clave "count"
+    total = c.fetchone()["count"]
     offset = (page - 1) * per_page
 
     if busqueda:
-        c.execute("""SELECT * FROM libros WHERE titulo LIKE ? OR autor LIKE ? OR categoria LIKE ? 
-                     ORDER BY id DESC LIMIT ? OFFSET ?""", (like, like, like, per_page, offset))
+        # CAMBIO: ? -> %s para PostgreSQL
+        c.execute("""SELECT * FROM libros WHERE titulo LIKE %s OR autor LIKE %s OR categoria LIKE %s 
+                     ORDER BY id DESC LIMIT %s OFFSET %s""", (like, like, like, per_page, offset))
     else:
-        c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset))
+        # CAMBIO: ? -> %s para PostgreSQL
+        c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT %s OFFSET %s", (per_page, offset))
 
     libros = [dict(row) for row in c.fetchall()]
     conn.close()
@@ -134,7 +138,8 @@ def crear_reserva():
         
         conn = get_db()
         c = conn.cursor()
-        c.execute("INSERT INTO reservas (usuario_id, nombre, email, libro_id) VALUES (?, ?, ?, ?)", 
+        # CAMBIO: ? -> %s para PostgreSQL
+        c.execute("INSERT INTO reservas (usuario_id, nombre, email, libro_id) VALUES (%s, %s, %s, %s)", 
                   (usuario_id, nombre, email, libro_id))
         conn.commit()
         conn.close()
@@ -194,7 +199,8 @@ def actualizar_libro(libro_id):
     conn = get_db()
     c = conn.cursor()
     if "disponible" in data:
-        c.execute("UPDATE libros SET disponible = ? WHERE id = ?", (data["disponible"], libro_id))
+        # CAMBIO: ? -> %s para PostgreSQL
+        c.execute("UPDATE libros SET disponible = %s WHERE id = %s", (data["disponible"], libro_id))
         conn.commit()
     conn.close()
     return jsonify({"mensaje": "Libro actualizado"})

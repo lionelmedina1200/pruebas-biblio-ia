@@ -12,30 +12,30 @@ def obtener_categorias():
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT DISTINCT categoria FROM libros WHERE categoria IS NOT NULL AND categoria != '' ORDER BY categoria")
-    cats = [row[0] for row in c.fetchall()]
+    cats = [row['categoria'] for row in c.fetchall()]
     conn.close()
     return cats
 
 def buscar_por_categoria_exacta(categoria_buscada):
     conn = get_db()
-    conn.row_factory = lambda c, r: dict(zip([col[0] for col in c.description], r))
+    conn.row_factory = psycopg2.extras.RealDictRow
     cur = conn.cursor()
-    cur.execute("SELECT * FROM libros WHERE LOWER(categoria) = LOWER(?) ORDER BY titulo", (categoria_buscada,))
-    results = [dict(row) for row in cur.fetchall()]
+    cur.execute("SELECT * FROM libros WHERE LOWER(categoria) = LOWER(%s) ORDER BY titulo", (categoria_buscada,))
+    results = cur.fetchall()
     conn.close()
     return results
 
 def buscar_libros_general(consulta):
     conn = get_db()
-    conn.row_factory = lambda c, r: dict(zip([col[0] for col in c.description], r))
+    conn.row_factory = psycopg2.extras.RealDictRow
     cur = conn.cursor()
     q = consulta.lower().strip()
     cur.execute("""
         SELECT * FROM libros 
-        WHERE LOWER(titulo) LIKE ? OR LOWER(autor) LIKE ? OR LOWER(categoria) LIKE ? OR LOWER(editorial) LIKE ?
+        WHERE LOWER(titulo) LIKE %s OR LOWER(autor) LIKE %s OR LOWER(categoria) LIKE %s OR LOWER(editorial) LIKE %s
         ORDER BY categoria, titulo
     """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
-    resultados = [dict(row) for row in cur.fetchall()]
+    resultados = cur.fetchall()
     conn.close()
     return resultados
 

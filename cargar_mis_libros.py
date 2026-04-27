@@ -1,23 +1,23 @@
-import sqlite3
+import psycopg2
 import pandas as pd
 from werkzeug.security import generate_password_hash
 import os
 import uuid
+import psycopg2.extras
 
-print("🚀 Iniciando carga de libros desde Excel...")
+print("🚀 Iniciando carga de libros desde Excel a PostgreSQL...")
 
-# Conectar a la BD
-if os.path.exists('biblioteca.db'):
-    os.remove('biblioteca.db') # Borramos la vieja para empezar limpio
-    print("🗑️ Base de datos anterior eliminada.")
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    print("❌ ERROR: No se encontró DATABASE_URL")
+    exit()
 
-conn = sqlite3.connect('biblioteca.db')
+conn = psycopg2.connect(DATABASE_URL)
 c = conn.cursor()
 
-# Crear tablas
 print("📋 Creando tablas...")
 c.execute("""CREATE TABLE IF NOT EXISTS libros (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     titulo TEXT NOT NULL,
     capitulo TEXT,
     editorial TEXT,
@@ -31,7 +31,7 @@ c.execute("""CREATE TABLE IF NOT EXISTS libros (
 )""")
 
 c.execute("""CREATE TABLE IF NOT EXISTS usuarios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     nombre TEXT NOT NULL,
@@ -42,33 +42,30 @@ c.execute("""CREATE TABLE IF NOT EXISTS usuarios (
 )""")
 
 c.execute("""CREATE TABLE IF NOT EXISTS reservas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    usuario_id INTEGER,
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER REFERENCES usuarios(id),
     nombre TEXT NOT NULL,
     email TEXT NOT NULL,
-    libro_id INTEGER,
+    libro_id INTEGER REFERENCES libros(id),
     fecha_reserva TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    estado TEXT DEFAULT 'pendiente',
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-    FOREIGN KEY (libro_id) REFERENCES libros(id)
+    estado TEXT DEFAULT 'pendiente'
 )""")
 
 c.execute("""CREATE TABLE IF NOT EXISTS metricas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id SERIAL PRIMARY KEY,
     consulta TEXT,
     resultados INTEGER,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )""")
 
-# Crear usuario bibliotecaria
 print("👤 Creando usuario bibliotecaria...")
 hashed_pw = generate_password_hash("biblio123", method='pbkdf2:sha256')
-c.execute("""INSERT OR IGNORE INTO usuarios (username, password, nombre, email, rol) 
-             VALUES (?, ?, ?, ?, ?)""",
+c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol) 
+             VALUES (%s, %s, %s, %s, %s)
+             ON CONFLICT (username) DO NOTHING""",
           ("biblio", hashed_pw, "Bibliotecaria", "biblio@biblioteca.com", "bibliotecario"))
 conn.commit()
 
-# Leer Excel
 excel_file = 'libros.xlsx'
 if not os.path.exists(excel_file):
     print(f"❌ ERROR: No encontré '{excel_file}'")
@@ -80,7 +77,6 @@ print(f"📖 Leyendo {excel_file}...")
 try:
     xl = pd.ExcelFile(excel_file)
     sheet_names = xl.sheet_names
-    
     print(f"📑 Encontradas {len(sheet_names)} categorías: {', '.join(sheet_names)}")
     
     total_libros = 0
@@ -88,8 +84,6 @@ try:
     for sheet_name in sheet_names:
         print(f"\n📚 Procesando categoría: '{sheet_name}'")
         df = pd.read_excel(excel_file, sheet_name=sheet_name)
-        
-        # Normalizar columnas
         df.columns = [col.lower().strip() for col in df.columns]
         libros_insertados = 0
         
@@ -98,21 +92,20 @@ try:
                 titulo = row.get('titulo', '')
                 autor = row.get('autor', '')
                 
-                if pd.isna(titulo) or str(titulo).strip() == '': continue # Saltar filas vacías
+                if pd.isna(titulo) or str(titulo).strip() == '': 
+                    continue 
 
-                # --- AQUÍ ESTÁ LA CORRECCIÓN ---
-                # Si el ISBN está vacío o es NaN, le inventamos uno único para que no choque
                 isbn_raw = row.get('isbn', '')
                 if pd.isna(isbn_raw) or str(isbn_raw).strip() == '':
-                    isbn_final = f"NO-ISBN-{uuid.uuid4().hex[:8]}" # Genera un código único
+                    isbn_final = f"NO-ISBN-{uuid.uuid4().hex[:8]}"
                 else:
                     isbn_final = str(isbn_raw).strip()
-                # --------------------------------
 
                 c.execute("""
-                    INSERT OR IGNORE INTO libros 
+                    INSERT INTO libros 
                     (titulo, capitulo, editorial, autor, categoria, descripcion, isbn, disponible, ubicacion)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (isbn) DO NOTHING
                 """, (
                     str(titulo).strip(),
                     str(row.get('capitulo', '')).strip() if pd.notna(row.get('capitulo')) else '',
@@ -129,7 +122,7 @@ try:
             except Exception as e:
                 print(f"  ⚠️  Fila {idx}: Error -> {e}")
         
-        print(f"  ✅ {libros_insertados} libros insertados")
+        print(f"  ✅ {libros_insertados} libros procesados")
         total_libros += libros_insertados
     
     conn.commit()
