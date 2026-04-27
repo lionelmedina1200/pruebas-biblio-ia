@@ -6,7 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL)
+    """Conectar a PostgreSQL con SSL (requerido por Supabase)"""
+    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
     conn.row_factory = psycopg2.extras.RealDictRow
     return conn
 
@@ -56,7 +57,8 @@ def init_db():
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
-    c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = %s", ('bibliotecario',))
+    # CORRECCIÓN: Usar alias "as count" para acceder correctamente
+    c.execute("SELECT COUNT(*) as count FROM usuarios WHERE rol = %s", ('bibliotecario',))
     if c.fetchone()['count'] == 0:
         hashed_pw = generate_password_hash("biblio123", method='pbkdf2:sha256')
         c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol) 
