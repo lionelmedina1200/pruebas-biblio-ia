@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo"><span class="logo-icon">📚</span><h1>Dashboard</h1></div>
+        <nav class="header-nav">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/dashboard" class="nav-link active">Dashboard</a>
+            <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+        </nav>
+        <div id="user-menu"></div>
+    </header>
+
+    <main class="dashboard-main">
+        <section class="metrics-grid">
+            <div class="metric-card"><div class="metric-icon">🔍</div><div class="metric-info"><h3 id="m-consultas">-</h3><p>Consultas</p></div></div>
+            <div class="metric-card"><div class="metric-icon">📚</div><div class="metric-info"><h3 id="m-libros">-</h3><p>Total Libros</p></div></div>
+            <div class="metric-card"><div class="metric-icon">✅</div><div class="metric-info"><h3 id="m-disp">-</h3><p>Disponibles</p></div></div>
+            <div class="metric-card"><div class="metric-icon">👥</div><div class="metric-info"><h3 id="m-alumnos">-</h3><p>Alumnos</p></div></div>
+            <div class="metric-card"><div class="metric-icon">⏳</div><div class="metric-info"><h3 id="m-reservas">-</h3><p>Pendientes</p></div></div>
+        </section>
+        <section class="dashboard-table-section">
+            <h2>📋 Consultas Recientes</h2>
+            <div class="table-container"><table class="data-table"><thead><tr><th>Consulta</th><th>Resultados</th><th>Fecha</th></tr></thead><tbody id="table-consultas"></tbody></table></div>
+        </section>
+        <section class="dashboard-table-section">
+            <h2>📝 Reservas</h2>
+            <div class="table-container"><table class="data-table"><thead><tr><th>Alumno</th><th>Libro</th><th>Fecha</th><th>Estado</th></tr></thead><tbody id="table-reservas"></tbody></table></div>
+        </section>
+    </main>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+        async function load() {
+            const m = await fetch('/api/metricas').then(r=>r.json());
+            document.getElementById('m-consultas').textContent = m.total_consultas;
+            document.getElementById('m-libros').textContent = m.total_libros;
+            document.getElementById('m-disp').textContent = m.disponibles;
+            document.getElementById('m-alumnos').textContent = m.total_alumnos;
+            document.getElementById('m-reservas').textContent = m.reservas_pendientes;
+            document.getElementById('table-consultas').innerHTML = m.consultas_recientes.map(q=>`<tr><td>${q.consulta}</td><td>${q.resultados}</td><td>${q.timestamp.split(' ')[0]}</td></tr>`).join('');
+            
+            const r = await fetch('/api/reservas').then(r=>r.json());
+            document.getElementById('table-reservas').innerHTML = r.map(x=>`<tr><td>${x.nombre}</td><td>${x.libro_titulo||'General'}</td><td>${x.fecha_reserva.split(' ')[0]}</td><td><span class="badge ${x.estado}">${x.estado}</span></td></tr>`).join('');
+        }
+        load(); setInterval(load, 30000);
+    </script>
+</body>
+</html>

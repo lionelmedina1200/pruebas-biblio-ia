@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Alumno</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo"><span class="logo-icon">📚</span><h1>Registrar Alumno</h1></div>
+        <nav class="header-nav">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/registro" class="nav-link active">Registrar Alumno</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+        </nav>
+        <div id="user-menu"></div>
+    </header>
+
+    <main class="checkin-main">
+        <div class="checkin-card" style="max-width:600px; margin:0 auto;">
+            <h2>👤 Nuevo Alumno</h2>
+            <form id="register-form">
+                <div class="form-group"><label>Nombre</label><input type="text" id="reg-nombre" required></div>
+                <div class="form-group"><label>Email</label><input type="email" id="reg-email" required></div>
+                <div class="form-group"><label>Usuario</label><input type="text" id="reg-username" required></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="reg-password" required></div>
+                <button type="submit" class="btn-primary" style="width:100%">Registrar</button>
+            </form>
+            <div id="reg-msg" class="success-msg" style="display:none;"></div>
+        </div>
+        <div class="checkin-card" style="margin-top:2rem;">
+            <h2>📋 Alumnos Activos</h2>
+            <div class="table-container"><table class="data-table"><thead><tr><th>Nombre</th><th>Usuario</th><th>Email</th></tr></thead><tbody id="alumnos-list"></tbody></table></div>
+        </div>
+    </main>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+        document.getElementById('register-form').onsubmit = async e => {
+            e.preventDefault();
+            const res = await fetch('/api/registro', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+                nombre: document.getElementById('reg-nombre').value,
+                email: document.getElementById('reg-email').value,
+                username: document.getElementById('reg-username').value,
+                password: document.getElementById('reg-password').value
+            })});
+            const data = await res.json();
+            const msg = document.getElementById('reg-msg');
+            msg.textContent = data.mensaje || data.error;
+            msg.style.display = 'block';
+            if(res.ok) { e.target.reset(); loadAlumnos(); }
+        };
+        async function loadAlumnos() {
+            const u = await fetch('/api/usuarios').then(r=>r.json());
+            document.getElementById('alumnos-list').innerHTML = u.filter(x=>x.rol==='alumno').map(a=>`<tr><td>${a.nombre}</td><td>${a.username}</td><td>${a.email}</td></tr>`).join('');
+        }
+        loadAlumnos();
+    </script>
+</body>
+</html>

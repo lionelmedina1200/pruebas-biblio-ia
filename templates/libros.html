@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libros</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo"><span class="logo-icon">📚</span><h1>Gestión de Libros</h1></div>
+        <nav class="header-nav">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/dashboard" class="nav-link">Dashboard</a>
+            <a href="/registro" class="nav-link">Registrar Alumno</a>
+            <a href="/libros" class="nav-link active">Libros</a>
+        </nav>
+        <div id="user-menu"></div>
+    </header>
+
+    <main class="admin-main">
+        <div class="admin-toolbar">
+            <input type="text" id="admin-search" placeholder="🔍 Buscar..." class="search-input">
+            <select id="admin-per-page">
+                <option value="10">10 por página</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Título</th>
+                        <th>Autor</th>
+                        <th>Editorial</th>
+                        <th>Capítulo</th>
+                        <th>Ubicación</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-tbody"></tbody>
+            </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+    </main>
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/libros.js"></script>
+</body>
+</html>
