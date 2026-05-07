@@ -4,7 +4,7 @@ from werkzeug.security import generate_password_hash
 import os
 import uuid
 
-DB_PATH = "biblioteca.db"
+DB_PATH = os.path.join(os.path.dirname(__file__), "biblioteca.db")
 print("🚀 Iniciando carga de libros desde Excel a SQLite...")
 
 def cargar_libros(excel_file='libros.xlsx'):
@@ -62,7 +62,7 @@ def cargar_libros(excel_file='libros.xlsx'):
     try:
         xl = pd.ExcelFile(excel_file)
         sheet_names = xl.sheet_names
-        print(f" Encontradas {len(sheet_names)} categorías: {', '.join(sheet_names)}")
+        print(f"📑 Encontradas {len(sheet_names)} categorías: {', '.join(sheet_names)}")
         
         total_libros = 0
         
