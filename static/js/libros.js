@@ -16,8 +16,18 @@ async function loadLibros(page = 1) {
                 <td><strong>${l.titulo}</strong></td>
                 <td>${l.autor}</td>
                 <td>${l.editorial || '-'}</td>
-                <td>${l.capitulo || '-'}</td>
-                <td>${l.ubicacion || '-'}</td>
+                <td>
+                    <div class="stock-control">
+                        <input type="number" 
+                            min="0" 
+                            value="${ l.disponible }" 
+                            class="stock-input"
+                            data-libro-id="${ l.id }">
+                        <button onclick="actualizarStock(${l.id})" class="btn-stock">
+                            Actualizar
+                        </button>
+                    </div>S
+                </td>
                 <td>
                     <span class="badge ${l.disponible ? 'disponible' : 'no-disponible'}">
                         ${l.disponible ? '✅ Disp.' : '❌ Prestado'}
@@ -78,4 +88,33 @@ if (document.getElementById('admin-per-page')) {
 
 if (document.getElementById('admin-tbody')) {
     loadLibros(1);
+}
+
+async function actualizarStock(libroId) {
+    const input = document.querySelector(`.stock-input[data-libro-id="${libroId}"]`);
+    const cantidad = input.value;
+    
+    try {
+        const response = await fetch(`/api/libros/${libroId}/stock`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ cantidad: cantidad })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Mostrar éxito
+            alert(`✅ Stock actualizado: ${data.cantidad} unidades`);
+            // Recargar la página o actualizar la tabla
+            location.reload();
+        } else {
+            alert(`❌ Error: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Error al actualizar stock:', error);
+        alert('❌ Error al actualizar el stock');
+    }
 }

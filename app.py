@@ -187,17 +187,29 @@ def metricas():
         "total_alumnos": total_alumnos
     })
 
-@app.route("/api/libros/<int:libro_id>", methods=["PUT"])
+@app.route("/api/libros/<int:libro_id>/stock", methods=["PUT"])
 @bibliotecario_required
-def actualizar_libro(libro_id):
+def actualizar_stock(libro_id):
     data = request.json or {}
+    cantidad = data.get("cantidad")
+    
+    if cantidad is None:
+        return jsonify({"error": "La cantidad es obligatoria"}), 400
+    
+    try:
+        cantidad = int(cantidad)
+        if cantidad < 0:
+            return jsonify({"error": "La cantidad no puede ser negativa"}), 400
+    except ValueError:
+        return jsonify({"error": "La cantidad debe ser un número"}), 400
+    
     conn = get_db()
     c = conn.cursor()
-    if "disponible" in data:
-        c.execute("UPDATE libros SET disponible = ? WHERE id = ?", (data["disponible"], libro_id))
-        conn.commit()
+    c.execute("UPDATE libros SET disponible = ? WHERE id = ?", (cantidad, libro_id))
+    conn.commit()
     conn.close()
-    return jsonify({"mensaje": "Libro actualizado"})
+    
+    return jsonify({"mensaje": "Stock actualizado correctamente", "cantidad": cantidad})
 
 @app.route("/api/usuarios")
 @bibliotecario_required

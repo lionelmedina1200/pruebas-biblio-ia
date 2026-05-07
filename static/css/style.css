@@ -258,3 +258,33 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+.stock-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stock-input {
+    width: 70px;
+    padding: 5px;
+    border: 1px solid #4a5568;
+    border-radius: 4px;
+    background: #1a202c;
+    color: #e2e8f0;
+    text-align: center;
+}
+
+.btn-stock {
+    padding: 5px 10px;
+    background: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn-stock:hover {
+    background: #3182ce;
+}
