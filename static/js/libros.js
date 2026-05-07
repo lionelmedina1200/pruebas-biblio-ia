@@ -26,7 +26,7 @@ async function loadLibros(page = 1) {
                         <button onclick="actualizarStock(${l.id})" class="btn-stock">
                             Actualizar
                         </button>
-                    </div>S
+                    </div>
                 </td>
                 <td>
                     <span class="badge ${l.disponible ? 'disponible' : 'no-disponible'}">
