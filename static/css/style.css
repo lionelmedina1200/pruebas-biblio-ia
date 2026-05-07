@@ -29,7 +29,7 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
 .welcome-modal {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(2, 6, 23, 0.95); display: flex; align-items: center; justify-content: center;
-    z-index: 10000; animation: fadeIn 0.5s ease; backdrop-filter: blur(5px);
+    z-index: 10; animation: fadeIn 0.5s ease; backdrop-filter: blur(5px);
 }
 .welcome-content {
     text-align: center; color: #fff; padding: 3rem; max-width: 500px;
@@ -289,208 +289,161 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
     background: #3182ce;
 }
 
-/* Contenedor del robot - esquina superior derecha */
-.robot-container {
+/* Contenedor del robot en el fondo */
+.bg-robot-container {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 250px;
+    height: 250px;
+    z-index: 1; /* Asegurarse que esté detrás del modal (que usualmente tiene z-index mayor) */
+    pointer-events: none; /* Para que no interfiera con clicks */
+    opacity: 0.9;
+}
+
+.bg-robot {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 80px;
-    height: 100px;
-    z-index: 10;
+    top: 50px;
+    right: 50px;
+    width: 120px;
+    height: 180px;
+    animation: bg-float 4s ease-in-out infinite;
 }
 
-/* Robot completo */
-.robot {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    animation: float 3s ease-in-out infinite;
-}
-
-/* Cabeza del robot */
-.robot-head {
+/* Cabeza */
+.bg-robot-head {
     position: absolute;
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 50px;
-    height: 45px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    width: 80px;
+    height: 70px;
+    background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+    border-radius: 20px;
+    box-shadow: 0 10px 20px rgba(108, 92, 231, 0.5);
+    border: 3px solid rgba(255,255,255,0.2);
 }
 
 /* Antena */
-.robot-antenna {
+.bg-antenna {
     position: absolute;
-    top: -12px;
+    top: -20px;
     left: 50%;
     transform: translateX(-50%);
-    width: 3px;
-    height: 12px;
-    background: #667eea;
-    border-radius: 2px;
+    width: 5px;
+    height: 20px;
+    background: #6c5ce7;
 }
-
-.robot-antenna::after {
+.bg-antenna::after {
     content: '';
     position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 8px;
-    height: 8px;
-    background: #f093fb;
+    top: -10px;
+    left: -5px;
+    width: 15px;
+    height: 15px;
+    background: #ff7675;
     border-radius: 50%;
-    animation: blink 2s ease-in-out infinite;
+    box-shadow: 0 0 15px #ff7675;
+    animation: bg-blink-light 2s infinite;
 }
 
-/* Cara del robot */
-.robot-face {
+/* Cara */
+.bg-face {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 40px;
-    height: 30px;
+    width: 60px;
+    height: 40px;
 }
 
 /* Ojos */
-.robot-eye {
+.bg-eye {
     position: absolute;
     top: 5px;
-    width: 10px;
-    height: 10px;
+    width: 16px;
+    height: 16px;
     background: white;
     border-radius: 50%;
-    animation: look 4s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(255,255,255,0.8);
 }
-
-.robot-eye.left {
-    left: 7px;
-}
-
-.robot-eye.right {
-    right: 7px;
-}
-
-.robot-eye::after {
+.bg-eye.left { left: 10px; }
+.bg-eye.right { right: 10px; }
+.bg-eye::after {
     content: '';
     position: absolute;
-    top: 2px;
-    left: 3px;
-    width: 4px;
-    height: 4px;
-    background: #2d3748;
+    top: 4px;
+    left: 6px;
+    width: 6px;
+    height: 6px;
+    background: #2d3436;
     border-radius: 50%;
 }
 
-/* Boca */
-.robot-mouth {
+/* Boca sonriente */
+.bg-mouth {
     position: absolute;
     bottom: 5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 20px;
-    height: 6px;
-    background: white;
-    border-radius: 0 0 10px 10px;
-    animation: smile 3s ease-in-out infinite;
+    width: 30px;
+    height: 15px;
+    background: transparent;
+    border-bottom: 4px solid white;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 5px 0 -1px white; /* Truco para engrosar la sonrisa */
+}
+
+/* Cuerpo */
+.bg-body {
+    position: absolute;
+    top: 75px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 70px;
+    background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+    border-radius: 20px;
+    border: 3px solid rgba(255,255,255,0.2);
 }
 
 /* Brazo saludando */
-.robot-arm {
+.bg-arm {
     position: absolute;
-    top: 35px;
-    right: 5px;
-    width: 8px;
-    height: 35px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 4px;
+    top: 80px;
+    right: 10px;
+    width: 12px;
+    height: 60px;
+    background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+    border-radius: 6px;
     transform-origin: top center;
-    animation: wave 2s ease-in-out infinite;
+    animation: bg-wave 2.5s ease-in-out infinite;
+    border: 2px solid rgba(255,255,255,0.2);
 }
 
-.robot-hand {
+.bg-hand {
     position: absolute;
-    bottom: -10px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 18px;
-    height: 18px;
-    background: #f093fb;
+    bottom: -15px;
+    left: -6px;
+    width: 25px;
+    height: 25px;
+    background: #fab1a0;
     border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(240, 147, 251, 0.4);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.3);
 }
 
 /* Animaciones */
-@keyframes wave {
-    0%, 100% {
-        transform: rotate(-20deg);
-    }
-    50% {
-        transform: rotate(-45deg);
-    }
+@keyframes bg-wave {
+    0%, 100% { transform: rotate(-20deg); }
+    50% { transform: rotate(-55deg); }
 }
 
-@keyframes float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-10px);
-    }
+@keyframes bg-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
 }
 
-@keyframes blink {
-    0%, 90%, 100% {
-        opacity: 1;
-        transform: translateX(-50%) scale(1);
-    }
-    95% {
-        opacity: 0.5;
-        transform: translateX(-50%) scale(0.8);
-    }
-}
-
-@keyframes look {
-    0%, 100% {
-        transform: translateX(0);
-    }
-    25% {
-        transform: translateX(-2px);
-    }
-    75% {
-        transform: translateX(2px);
-    }
-}
-
-@keyframes smile {
-    0%, 100% {
-        width: 20px;
-        border-radius: 0 0 10px 10px;
-    }
-    50% {
-        width: 22px;
-        border-radius: 0 0 12px 12px;
-    }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .robot-container {
-        width: 60px;
-        height: 80px;
-        top: 15px;
-        right: 15px;
-    }
-    
-    .robot-head {
-        width: 40px;
-        height: 38px;
-    }
-    
-    .robot-arm {
-        height: 28px;
-    }
+@keyframes bg-blink-light {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.8); }
 }
