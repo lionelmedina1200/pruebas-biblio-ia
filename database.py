@@ -1,13 +1,12 @@
 import os
-import psycopg2
-import psycopg2.extras
+import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DB_PATH = os.path.join(os.path.dirname(__file__), "biblioteca.db")
 
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-    conn.row_factory = psycopg2.extras.RealDictRow
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # Permite acceso tipo diccionario
     return conn
 
 def init_db():
@@ -15,7 +14,7 @@ def init_db():
     c = conn.cursor()
     
     c.execute("""CREATE TABLE IF NOT EXISTS usuarios (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
         nombre TEXT NOT NULL,
@@ -26,7 +25,7 @@ def init_db():
     )""")
     
     c.execute("""CREATE TABLE IF NOT EXISTS libros (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         titulo TEXT NOT NULL,
         capitulo TEXT,
         editorial TEXT,
@@ -40,7 +39,7 @@ def init_db():
     )""")
     
     c.execute("""CREATE TABLE IF NOT EXISTS reservas (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         usuario_id INTEGER REFERENCES usuarios(id),
         nombre TEXT NOT NULL,
         email TEXT NOT NULL,
@@ -50,17 +49,17 @@ def init_db():
     )""")
     
     c.execute("""CREATE TABLE IF NOT EXISTS metricas (
-        id SERIAL PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         consulta TEXT,
         resultados INTEGER,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
     
-    c.execute("SELECT COUNT(*) as count FROM usuarios WHERE rol = %s", ('bibliotecario',))
+    c.execute("SELECT COUNT(*) as count FROM usuarios WHERE rol = ?", ('bibliotecario',))
     if c.fetchone()['count'] == 0:
         hashed_pw = generate_password_hash("biblio123", method='pbkdf2:sha256')
         c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol) 
-                     VALUES (%s, %s, %s, %s, %s)""",
+                     VALUES (?, ?, ?, ?, ?)""",
                   ("biblio", hashed_pw, "Bibliotecaria", "biblio@biblioteca.com", "bibliotecario"))
     
     conn.commit()
@@ -69,7 +68,7 @@ def init_db():
 def verificar_usuario(username, password):
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT * FROM usuarios WHERE username = %s AND activo = 1", (username,))
+    c.execute("SELECT * FROM usuarios WHERE username = ? AND activo = 1", (username,))
     usuario = c.fetchone()
     conn.close()
     if usuario and check_password_hash(usuario["password"], password):
@@ -82,14 +81,10 @@ def registrar_usuario(username, password, nombre, email, rol="alumno"):
         c = conn.cursor()
         hashed_pw = generate_password_hash(password, method='pbkdf2:sha256')
         c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol)
-        VALUES (%s, %s, %s, %s, %s)""",
+        VALUES (?, ?, ?, ?, ?)""",
         (username, hashed_pw, nombre, email, rol))
         conn.commit()
         conn.close()
         return True
-    except psycopg2.IntegrityError:
+    except sqlite3.IntegrityError:
         return False
-
-if __name__ == "__main__":
-    init_db()
-    print("✅ Base de datos PostgreSQL inicializada correctamente.")

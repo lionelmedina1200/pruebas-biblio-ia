@@ -11,6 +11,7 @@ GROQ_MODEL = "llama-3.1-8b-instant"
 def obtener_categorias():
     conn = get_db()
     c = conn.cursor()
+    # SQLite compatible
     c.execute("SELECT DISTINCT categoria FROM libros WHERE categoria IS NOT NULL AND categoria != '' ORDER BY categoria")
     cats = [row['categoria'] for row in c.fetchall()]
     conn.close()
@@ -18,24 +19,27 @@ def obtener_categorias():
 
 def buscar_por_categoria_exacta(categoria_buscada):
     conn = get_db()
-    conn.row_factory = psycopg2.extras.RealDictRow
     cur = conn.cursor()
-    cur.execute("SELECT * FROM libros WHERE LOWER(categoria) = LOWER(%s) ORDER BY titulo", (categoria_buscada,))
-    results = cur.fetchall()
+    # CAMBIO: %s -> ? (SQLite)
+    # CAMBIO: Eliminada referencia a psycopg2 row_factory
+    cur.execute("SELECT * FROM libros WHERE LOWER(categoria) = LOWER(?) ORDER BY titulo", (categoria_buscada,))
+    # Convertir a diccionarios para asegurar que .get() funcione en todas las versiones de Python
+    results = [dict(row) for row in cur.fetchall()]
     conn.close()
     return results
 
 def buscar_libros_general(consulta):
     conn = get_db()
-    conn.row_factory = psycopg2.extras.RealDictRow
     cur = conn.cursor()
     q = consulta.lower().strip()
+    # CAMBIO: %s -> ? (SQLite)
     cur.execute("""
         SELECT * FROM libros 
-        WHERE LOWER(titulo) LIKE %s OR LOWER(autor) LIKE %s OR LOWER(categoria) LIKE %s OR LOWER(editorial) LIKE %s
+        WHERE LOWER(titulo) LIKE ? OR LOWER(autor) LIKE ? OR LOWER(categoria) LIKE ? OR LOWER(editorial) LIKE ?
         ORDER BY categoria, titulo
     """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
-    resultados = cur.fetchall()
+    # Convertir a diccionarios para asegurar compatibilidad
+    resultados = [dict(row) for row in cur.fetchall()]
     conn.close()
     return resultados
 
@@ -62,13 +66,16 @@ def formatear_lista_libros(libros):
 def detectar_categoria_en_consulta(consulta):
     consulta_lower = consulta.lower().strip()
     categorias = obtener_categorias()
+    
+    # Coincidencia exacta o contenida
     for cat in categorias:
         cat_lower = cat.lower()
         if cat_lower in consulta_lower or consulta_lower in cat_lower:
             return cat
         if difflib.SequenceMatcher(None, cat_lower, consulta_lower).ratio() > 0.6:
             return cat
-    
+            
+    # Coincidencia por palabras clave
     palabras_consulta = consulta_lower.split()
     for cat in categorias:
         cat_lower = cat.lower()
@@ -86,16 +93,14 @@ def llamar_groq(mensaje_usuario, contexto_libros=""):
         return None
     
     sistema = """Eres ChacaBot, una bibliotecaria amable y conversacional del Colegio Chacabuco.
-
 REGLAS IMPORTANTES:
-1. Respondé siempre en español, con tono natural y amable.
-2. Sé clara y profesional, pero no robótica.
-3. No uses emojis.
-4. Solo presentate como ChacaBot cuando te saluden.
-5. RESTRICCIÓN ESTRICTA: SOLO responde sobre temas relacionados con la biblioteca, libros, préstamos o lectura.
-6. Si el usuario saluda o pregunta cómo estás, respondé naturalmente y luego preguntá en qué podés ayudar con los libros.
-7. Si pregunta sobre temas ajenos (recetas, clima, juegos, etc.), respondé amablemente: "Soy ChacaBot y solo puedo ayudarte con información sobre la biblioteca y sus libros. ¿Hay algún libro que estés buscando?"
-
+Respondé siempre en español, con tono natural y amable.
+Sé clara y profesional, pero no robótica.
+No uses emojis.
+Solo presentate como ChacaBot cuando te saluden.
+RESTRICCIÓN ESTRICTA: SOLO responde sobre temas relacionados con la biblioteca, libros, préstamos o lectura.
+Si el usuario saluda o pregunta cómo estás, respondé naturalmente y luego preguntá en qué podés ayudar con los libros.
+Si pregunta sobre temas ajenos (recetas, clima, juegos, etc.), respondé amablemente: "Soy ChacaBot y solo puedo ayudarte con información sobre la biblioteca y sus libros. ¿Hay algún libro que estés buscando?"
 FORMATO para mostrar libros (SOLO cuando muestres resultados):
 Nombre: [título]
 Capítulos: [capítulo]
@@ -104,24 +109,23 @@ Autor: [autor]
 Disponible: [Sí/No]
 Categoría: [categoría]
 """
-    
     mensajes = [
         {"role": "system", "content": sistema},
         {"role": "user", "content": f"CONTEXTO: {contexto_libros}\n\nUSUARIO: {mensaje_usuario}"}
     ]
-    
+
     payload = {
         "messages": mensajes,
         "model": GROQ_MODEL,
         "temperature": 0.5,
         "max_tokens": 500
     }
-    
+
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
-    
+
     try:
         print(f"🚀 Llamando a Groq...")
         response = requests.post(GROQ_API_URL, json=payload, headers=headers, timeout=15)
@@ -143,7 +147,7 @@ def procesar_consulta(consulta):
     print(f"\n🔍 Consulta recibida: '{consulta}'")
     consulta_lower = consulta.lower().strip()
     
-    # 1. SALUDOS Y CHARLA CASUAL (Lista ampliada)
+    # 1. SALUDOS Y CHARLA CASUAL
     saludos = [
         "hola", "buenas", "hey", "hi", "buen dia", "buenas tardes", "buenas noches",
         "como estas", "como andas", "todo bien", "que tal", "como va", "que onda", 
@@ -154,9 +158,9 @@ def procesar_consulta(consulta):
         contexto = "El usuario está saludando o haciendo charla casual. Respondé de forma amable y breve, presentándote como ChacaBot y preguntando en qué puedes ayudar con la biblioteca."
         respuesta = llamar_groq(consulta, contexto)
         return respuesta if respuesta else "¡Hola! Soy ChacaBot, todo bien por acá. ¿En qué libro te puedo ayudar hoy?"
-    
+
     # 2. CONSULTA SOBRE CATEGORÍAS O CATÁLOGO
-    if any(k in consulta_lower for k in ["que libros", "q libros", "que tenes", "q tenes", "tipos de libros", "categorias", "materias", "catalogo", "que hay", "q hay", "lista de"]):
+    if any(k in consulta_lower for k in ["que libros", "q libros", "que tenes", "q tenes", "tipos de libros", "categorias", "materias", "catalogo", "que hay", "q hay", "lista de "]):
         print("→ Detectado: Consulta de catálogo/categorías")
         cats = obtener_categorias()
         if cats:
@@ -165,7 +169,7 @@ def procesar_consulta(consulta):
             respuesta = llamar_groq(consulta, contexto)
             return respuesta if respuesta else f"Tenemos estas categorías:\n\n" + "\n".join(f"• {cat}" for cat in cats)
         return "No hay categorías cargadas en este momento."
-    
+
     # 3. BÚSQUEDA POR CATEGORÍA ESPECÍFICA
     categoria_detectada = detectar_categoria_en_consulta(consulta)
     if categoria_detectada:
@@ -179,8 +183,8 @@ def procesar_consulta(consulta):
             return respuesta if respuesta else f"Estos son los libros de {categoria_detectada}:\n\n{contexto}"
         else:
             return f"No hay libros cargados de la categoría '{categoria_detectada}'."
-    
-    # 4. BÚSQUEDA GENERAL (Título, Autor, etc.)
+
+    # 4. BÚSQUEDA GENERAL
     if len(consulta_lower.split()) >= 2:
         print("→ Búsqueda general")
         libros = buscar_libros_general(consulta)
@@ -192,7 +196,7 @@ def procesar_consulta(consulta):
             return respuesta if respuesta else f"Libros encontrados:\n\n{contexto}"
         else:
             return "No encontré libros con esa búsqueda. Probá con otro término o preguntame '¿Qué categorías hay?'"
-    
+
     # 5. CONSULTAS CORTAS O NO ENTENDIDAS
     print("→ Consulta corta, intentando respuesta general")
     respuesta = llamar_groq(consulta, "El usuario hizo una consulta muy corta. Respondé amablemente preguntando en qué puedes ayudar con los libros.")
