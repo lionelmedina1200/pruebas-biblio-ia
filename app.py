@@ -95,22 +95,18 @@ def api_libros():
     like = f"%{busqueda}%"
 
     if busqueda:
-        # CAMBIO: ? -> %s para PostgreSQL
-        c.execute("SELECT COUNT(*) FROM libros WHERE titulo LIKE %s OR autor LIKE %s OR categoria LIKE %s", (like, like, like))
+        c.execute("SELECT COUNT(*) FROM libros WHERE titulo LIKE ? OR autor LIKE ? OR categoria LIKE ?", (like, like, like))
     else:
         c.execute("SELECT COUNT(*) FROM libros")
     
-    # CAMBIO: psycopg2 devuelve diccionario con clave "count"
-    total = c.fetchone()["count"]
+    total = c.fetchone()[0]
     offset = (page - 1) * per_page
 
     if busqueda:
-        # CAMBIO: ? -> %s para PostgreSQL
-        c.execute("""SELECT * FROM libros WHERE titulo LIKE %s OR autor LIKE %s OR categoria LIKE %s 
-                     ORDER BY id DESC LIMIT %s OFFSET %s""", (like, like, like, per_page, offset))
+        c.execute("""SELECT * FROM libros WHERE titulo LIKE ? OR autor LIKE ? OR categoria LIKE ? 
+                     ORDER BY id DESC LIMIT ? OFFSET ?""", (like, like, like, per_page, offset))
     else:
-        # CAMBIO: ? -> %s para PostgreSQL
-        c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT %s OFFSET %s", (per_page, offset))
+        c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset))
 
     libros = [dict(row) for row in c.fetchall()]
     conn.close()
@@ -138,8 +134,7 @@ def crear_reserva():
         
         conn = get_db()
         c = conn.cursor()
-        # CAMBIO: ? -> %s para PostgreSQL
-        c.execute("INSERT INTO reservas (usuario_id, nombre, email, libro_id) VALUES (%s, %s, %s, %s)", 
+        c.execute("INSERT INTO reservas (usuario_id, nombre, email, libro_id) VALUES (?, ?, ?, ?)", 
                   (usuario_id, nombre, email, libro_id))
         conn.commit()
         conn.close()
@@ -153,9 +148,9 @@ def crear_reserva():
 def listar_reservas():
     conn = get_db()
     c = conn.cursor()
-    c.execute("""SELECT r.*, l.titulo as libro_titulo, u.nombre as usuario_nombre 
-                 FROM reservas r 
-                 LEFT JOIN libros l ON r.libro_id = l.id 
+    c.execute("""SELECT r.*, l.titulo as libro_titulo, u.nombre as usuario_nombre
+                 FROM reservas r
+                 LEFT JOIN libros l ON r.libro_id = l.id
                  LEFT JOIN usuarios u ON r.usuario_id = u.id
                  ORDER BY r.fecha_reserva DESC""")
     reservas = [dict(row) for row in c.fetchall()]
@@ -167,27 +162,27 @@ def listar_reservas():
 def metricas():
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT COUNT(*) as total_consultas FROM metricas")
-    total = c.fetchone()["total_consultas"]
-    c.execute("SELECT AVG(resultados) as avg_res FROM metricas")
-    avg = c.fetchone()["avg_res"] or 0
+    c.execute("SELECT COUNT(*) FROM metricas")
+    total = c.fetchone()[0]
+    c.execute("SELECT AVG(resultados) FROM metricas")
+    avg = c.fetchone()[0] or 0
     c.execute("SELECT consulta, resultados, timestamp FROM metricas ORDER BY timestamp DESC LIMIT 10")
     recientes = [dict(row) for row in c.fetchall()]
-    c.execute("SELECT COUNT(*) as total FROM libros")
-    total_libros = c.fetchone()["total"]
-    c.execute("SELECT COUNT(*) as disp FROM libros WHERE disponible = 1")
-    disponibles = c.fetchone()["disp"]
-    c.execute("SELECT COUNT(*) as pend FROM reservas WHERE estado = 'pendiente'")
-    pendientes = c.fetchone()["pend"]
-    c.execute("SELECT COUNT(*) as alumnos FROM usuarios WHERE rol = 'alumno'")
-    total_alumnos = c.fetchone()["alumnos"]
+    c.execute("SELECT COUNT(*) FROM libros")
+    total_libros = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM libros WHERE disponible = 1")
+    disponibles = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM reservas WHERE estado = 'pendiente'")
+    pendientes = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = 'alumno'")
+    total_alumnos = c.fetchone()[0]
     conn.close()
     return jsonify({
-        "total_consultas": total, 
-        "promedio_resultados": round(avg, 2), 
-        "consultas_recientes": recientes, 
-        "total_libros": total_libros, 
-        "disponibles": disponibles, 
+        "total_consultas": total,
+        "promedio_resultados": round(avg, 2),
+        "consultas_recientes": recientes,
+        "total_libros": total_libros,
+        "disponibles": disponibles,
         "reservas_pendientes": pendientes,
         "total_alumnos": total_alumnos
     })
@@ -199,8 +194,7 @@ def actualizar_libro(libro_id):
     conn = get_db()
     c = conn.cursor()
     if "disponible" in data:
-        # CAMBIO: ? -> %s para PostgreSQL
-        c.execute("UPDATE libros SET disponible = %s WHERE id = %s", (data["disponible"], libro_id))
+        c.execute("UPDATE libros SET disponible = ? WHERE id = ?", (data["disponible"], libro_id))
         conn.commit()
     conn.close()
     return jsonify({"mensaje": "Libro actualizado"})

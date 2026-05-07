@@ -6,7 +6,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "biblioteca.db")
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # Permite acceso tipo diccionario
+    conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
@@ -23,7 +23,7 @@ def init_db():
         activo INTEGER DEFAULT 1,
         fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
-    
+
     c.execute("""CREATE TABLE IF NOT EXISTS libros (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         titulo TEXT NOT NULL,
@@ -37,7 +37,7 @@ def init_db():
         ubicacion TEXT,
         fecha_alta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
-    
+
     c.execute("""CREATE TABLE IF NOT EXISTS reservas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         usuario_id INTEGER REFERENCES usuarios(id),
@@ -47,21 +47,21 @@ def init_db():
         fecha_reserva TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         estado TEXT DEFAULT 'pendiente'
     )""")
-    
+
     c.execute("""CREATE TABLE IF NOT EXISTS metricas (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         consulta TEXT,
         resultados INTEGER,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
-    
-    c.execute("SELECT COUNT(*) as count FROM usuarios WHERE rol = ?", ('bibliotecario',))
-    if c.fetchone()['count'] == 0:
+
+    c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = ?", ('bibliotecario',))
+    if c.fetchone()[0] == 0:
         hashed_pw = generate_password_hash("biblio123", method='pbkdf2:sha256')
         c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol) 
                      VALUES (?, ?, ?, ?, ?)""",
                   ("biblio", hashed_pw, "Bibliotecaria", "biblio@biblioteca.com", "bibliotecario"))
-    
+
     conn.commit()
     conn.close()
 
