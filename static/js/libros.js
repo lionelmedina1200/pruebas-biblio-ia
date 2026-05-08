@@ -66,12 +66,22 @@ function renderPagination(totalPages, current) {
 }
 
 async function toggleDisp(id, actual) {
-    await fetch(`/api/libros/${id}`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ disponible: !actual }) 
-    });
-    loadLibros(currentPage);
+    const nuevoStock = actual ? 0 : 1;
+    try {
+        const res = await fetch(`/api/libros/${id}/stock`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cantidad: nuevoStock })
+        });
+        if (res.ok) {
+            loadLibros(currentPage);
+        } else {
+            const data = await res.json();
+            alert('Error: ' + (data.error || 'No se pudo actualizar el estado'));
+        }
+    } catch (err) {
+        alert('Error de conexión al actualizar el estado');
+    }
 }
 
 // Event Listeners
@@ -97,24 +107,19 @@ async function actualizarStock(libroId) {
     try {
         const response = await fetch(`/api/libros/${libroId}/stock`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cantidad: cantidad })
         });
         
         const data = await response.json();
         
         if (response.ok) {
-            // Mostrar éxito
-            alert(`✅ Stock actualizado: ${data.cantidad} unidades`);
-            // Recargar la página o actualizar la tabla
-            location.reload();
+            loadLibros(currentPage);
         } else {
-            alert(`❌ Error: ${data.error}`);
+            alert('Error: ' + data.error);
         }
     } catch (error) {
         console.error('Error al actualizar stock:', error);
-        alert('❌ Error al actualizar el stock');
+        alert('Error al actualizar el stock');
     }
 }
