@@ -1,8 +1,9 @@
+import os
+import traceback
 from flask import Flask, render_template, request, jsonify, session
 from database import init_db, get_db, verificar_usuario, registrar_usuario, fetchall_as_dicts, fetchone_as_dict
 from ai_engine import procesar_consulta
 from auth import login_required, bibliotecario_required
-import traceback
 
 app = Flask(__name__)
 app.secret_key = "biblioteca_secreta_segura_2026_cambiame"
@@ -233,6 +234,91 @@ def listar_usuarios():
     c.close()
     conn.close()
     return jsonify(usuarios)
+
+@app.route("/admin/cargar-libros")
+def cargar_libros_endpoint():
+    key = request.args.get("key", "")
+    if key != "chacabuco2026":
+        return jsonify({"error": "No autorizado"}), 403
+
+    try:
+        import pandas as pd
+        import uuid
+        from database import get_db
+
+        excel_file = os.path.join(os.path.dirname(__file__), "libros.xlsx")
+        if not os.path.exists(excel_file):
+            return jsonify({"error": f"No se encontró libros.xlsx en el servidor"}), 404
+
+        conn = get_db()
+        c = conn.cursor()
+
+        xl = pd.ExcelFile(excel_file)
+        sheet_names = xl.sheet_names
+        total = 0
+        errores = 0
+
+        for sheet_name in sheet_names:
+            df = pd.read_excel(excel_file, sheet_name=sheet_name)
+            df.columns = [col.lower().strip() for col in df.columns]
+            for idx, row in df.iterrows():
+                try:
+                    titulo = row.get('titulo', '')
+                    if pd.isna(titulo) or str(titulo).strip() == '':
+                        continue
+                    isbn_raw = row.get('isbn', '')
+                    isbn_final = f"NO-ISBN-{uuid.uuid4().hex[:8]}" if pd.isna(isbn_raw) or str(isbn_raw).strip() == '' else str(isbn_raw).strip()
+                    try:
+                        c.execute("""INSERT INTO libros (titulo,capitulo,editorial,autor,categoria,descripcion,isbn,disponible,ubicacion)
+                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""", (
+                            str(titulo).strip(),
+                            str(row.get('capitulo','')).strip() if pd.notna(row.get('capitulo')) else '',
+                            str(row.get('editorial','')).strip() if pd.notna(row.get('editorial')) else '',
+                            str(row.get('autor', 'Sin autor')).strip(),
+                            sheet_name.strip(),
+                            str(row.get('descripcion','')).strip() if pd.notna(row.get('descripcion')) else '',
+                            isbn_final, 1,
+                            str(row.get('ubicacion','')).strip() if pd.notna(row.get('ubicacion')) else ''))
+                        total += 1
+                    except Exception:
+                        errores += 1
+                except Exception as e:
+                    errores += 1
+
+        conn.commit()
+        c.close()
+        conn.close()
+
+        return jsonify({
+            "mensaje": "Carga completada",
+            "libros_cargados": total,
+            "errores": errores,
+            "categorias": sheet_names
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/admin/estado-db")
+def estado_db():
+    key = request.args.get("key", "")
+    if key != "chacabuco2026":
+        return jsonify({"error": "No autorizado"}), 403
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM libros")
+        libros = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM usuarios")
+        usuarios = c.fetchone()[0]
+        c.execute("SELECT COUNT(*) FROM reservas")
+        reservas = c.fetchone()[0]
+        c.close()
+        conn.close()
+        return jsonify({"libros": libros, "usuarios": usuarios, "reservas": reservas, "estado": "OK"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/dashboard")
 @bibliotecario_required
