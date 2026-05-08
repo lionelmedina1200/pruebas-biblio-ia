@@ -77,6 +77,7 @@
                 <button type="submit" class="btn-primary">Confirmar Reserva</button>
             </form>
             <div id="checkin-success" class="success-msg" style="display:none;">✅ ¡Reserva creada!</div>
+            <div id="checkin-error" class="error-msg" style="display:none;"></div>
         </div>
     </main>
 
@@ -108,9 +109,23 @@
             document.getElementById('checkin-content').style.display = 'block';
         });
 
+        // Pre-cargar nombre y email del usuario logueado
+        async function preCargarUsuario() {
+            try {
+                const res = await fetch('/api/session', { credentials: 'include' });
+                const data = await res.json();
+                if (data.logged_in && data.usuario) {
+                    document.getElementById('nombre').value = data.usuario.nombre || '';
+                    document.getElementById('email').value = data.usuario.email || '';
+                }
+            } catch (err) {
+                // Si falla silenciosamente, el usuario completa el formulario a mano
+            }
+        }
+
         // Cargar libros para el select
         async function loadLibros() {
-            const res = await fetch('/api/libros?per_page=100');
+            const res = await fetch('/api/libros?per_page=100', { credentials: 'include' });
             const data = await res.json();
             const select = document.getElementById('libro-select');
             data.libros.forEach(l => { 
@@ -124,24 +139,41 @@
         // Formulario de reserva
         document.getElementById('checkin-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const successEl = document.getElementById('checkin-success');
+            const errorEl = document.getElementById('checkin-error');
+            successEl.style.display = 'none';
+            errorEl.style.display = 'none';
+
             const body = { 
                 nombre: document.getElementById('nombre').value, 
                 email: document.getElementById('email').value, 
                 libro_id: document.getElementById('libro-select').value || null 
             };
-            const res = await fetch('/api/reservas', { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify(body) 
-            });
-            if (res.ok) { 
-                document.getElementById('checkin-success').style.display = 'block'; 
-                document.getElementById('checkin-form').reset(); 
-            } else {
-                alert("Debes iniciar sesión para reservar.");
+
+            try {
+                const res = await fetch('/api/reservas', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify(body) 
+                });
+
+                if (res.ok) { 
+                    successEl.style.display = 'block'; 
+                    document.getElementById('checkin-form').reset();
+                    preCargarUsuario();
+                } else {
+                    const data = await res.json();
+                    errorEl.textContent = data.error || 'Error al crear la reserva.';
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = 'Error de conexión. Intentá de nuevo.';
+                errorEl.style.display = 'block';
             }
         });
 
+        preCargarUsuario();
         loadLibros();
     </script>
 </body>
