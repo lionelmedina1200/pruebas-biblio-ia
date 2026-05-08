@@ -95,20 +95,21 @@ def api_libros():
     like = f"%{busqueda}%"
 
     if busqueda:
-        c.execute("SELECT COUNT(*) FROM libros WHERE titulo LIKE ? OR autor LIKE ? OR categoria LIKE ?", (like, like, like))
+        c.execute("SELECT COUNT(*) FROM libros WHERE titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s", (like, like, like))
     else:
         c.execute("SELECT COUNT(*) FROM libros")
-    
-    total = c.fetchone()[0]
+
+    total = c.fetchone()["count"]
     offset = (page - 1) * per_page
 
     if busqueda:
-        c.execute("""SELECT * FROM libros WHERE titulo LIKE ? OR autor LIKE ? OR categoria LIKE ? 
-                     ORDER BY id DESC LIMIT ? OFFSET ?""", (like, like, like, per_page, offset))
+        c.execute("""SELECT * FROM libros WHERE titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s
+                     ORDER BY id DESC LIMIT %s OFFSET %s""", (like, like, like, per_page, offset))
     else:
-        c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT ? OFFSET ?", (per_page, offset))
+        c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT %s OFFSET %s", (per_page, offset))
 
     libros = [dict(row) for row in c.fetchall()]
+    c.close()
     conn.close()
 
     return jsonify({
@@ -134,9 +135,10 @@ def crear_reserva():
         
         conn = get_db()
         c = conn.cursor()
-        c.execute("INSERT INTO reservas (usuario_id, nombre, email, libro_id) VALUES (?, ?, ?, ?)", 
+        c.execute("INSERT INTO reservas (usuario_id, nombre, email, libro_id) VALUES (%s, %s, %s, %s)",
                   (usuario_id, nombre, email, libro_id))
         conn.commit()
+        c.close()
         conn.close()
         return jsonify({"mensaje": "Reserva creada correctamente"})
     except Exception as e:
@@ -154,26 +156,29 @@ def listar_reservas():
                  LEFT JOIN usuarios u ON r.usuario_id = u.id
                  ORDER BY r.fecha_reserva DESC""")
     reservas = [dict(row) for row in c.fetchall()]
+    c.close()
     conn.close()
     return jsonify(reservas)
 
-# --- NUEVO ENDPOINT: marcar reserva como prestada ---
 @app.route("/api/reservas/<int:reserva_id>/prestar", methods=["PUT"])
 @bibliotecario_required
 def marcar_prestado(reserva_id):
     try:
         conn = get_db()
         c = conn.cursor()
-        c.execute("SELECT id, estado FROM reservas WHERE id = ?", (reserva_id,))
+        c.execute("SELECT id, estado FROM reservas WHERE id = %s", (reserva_id,))
         reserva = c.fetchone()
         if not reserva:
+            c.close()
             conn.close()
             return jsonify({"error": "Reserva no encontrada"}), 404
         if reserva["estado"] != "pendiente":
+            c.close()
             conn.close()
             return jsonify({"error": "La reserva no está en estado pendiente"}), 400
-        c.execute("UPDATE reservas SET estado = 'prestado' WHERE id = ?", (reserva_id,))
+        c.execute("UPDATE reservas SET estado = 'prestado' WHERE id = %s", (reserva_id,))
         conn.commit()
+        c.close()
         conn.close()
         return jsonify({"mensaje": "Reserva marcada como prestada correctamente"})
     except Exception as e:
@@ -186,23 +191,24 @@ def metricas():
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM metricas")
-    total = c.fetchone()[0]
+    total = c.fetchone()["count"]
     c.execute("SELECT AVG(resultados) FROM metricas")
-    avg = c.fetchone()[0] or 0
+    avg = c.fetchone()["avg"] or 0
     c.execute("SELECT consulta, resultados, timestamp FROM metricas ORDER BY timestamp DESC LIMIT 10")
     recientes = [dict(row) for row in c.fetchall()]
     c.execute("SELECT COUNT(*) FROM libros")
-    total_libros = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM libros WHERE disponible = 1")
-    disponibles = c.fetchone()[0]
+    total_libros = c.fetchone()["count"]
+    c.execute("SELECT COUNT(*) FROM libros WHERE disponible > 0")
+    disponibles = c.fetchone()["count"]
     c.execute("SELECT COUNT(*) FROM reservas WHERE estado = 'pendiente'")
-    pendientes = c.fetchone()[0]
+    pendientes = c.fetchone()["count"]
     c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = 'alumno'")
-    total_alumnos = c.fetchone()[0]
+    total_alumnos = c.fetchone()["count"]
+    c.close()
     conn.close()
     return jsonify({
         "total_consultas": total,
-        "promedio_resultados": round(avg, 2),
+        "promedio_resultados": round(float(avg), 2),
         "consultas_recientes": recientes,
         "total_libros": total_libros,
         "disponibles": disponibles,
@@ -215,23 +221,24 @@ def metricas():
 def actualizar_stock(libro_id):
     data = request.json or {}
     cantidad = data.get("cantidad")
-    
+
     if cantidad is None:
         return jsonify({"error": "La cantidad es obligatoria"}), 400
-    
+
     try:
         cantidad = int(cantidad)
         if cantidad < 0:
             return jsonify({"error": "La cantidad no puede ser negativa"}), 400
     except ValueError:
         return jsonify({"error": "La cantidad debe ser un número"}), 400
-    
+
     conn = get_db()
     c = conn.cursor()
-    c.execute("UPDATE libros SET disponible = ? WHERE id = ?", (cantidad, libro_id))
+    c.execute("UPDATE libros SET disponible = %s WHERE id = %s", (cantidad, libro_id))
     conn.commit()
+    c.close()
     conn.close()
-    
+
     return jsonify({"mensaje": "Stock actualizado correctamente", "cantidad": cantidad})
 
 @app.route("/api/usuarios")
@@ -241,26 +248,27 @@ def listar_usuarios():
     c = conn.cursor()
     c.execute("SELECT id, username, nombre, email, rol, activo, fecha_creacion FROM usuarios ORDER BY id DESC")
     usuarios = [dict(row) for row in c.fetchall()]
+    c.close()
     conn.close()
     return jsonify(usuarios)
 
 @app.route("/dashboard")
 @bibliotecario_required
-def dashboard(): 
+def dashboard():
     return render_template("dashboard.html")
 
 @app.route("/registro")
 @bibliotecario_required
-def registro(): 
+def registro():
     return render_template("registro.html")
 
 @app.route("/libros")
 @bibliotecario_required
-def libros(): 
+def libros():
     return render_template("libros.html")
 
 @app.route("/checkin")
-def checkin(): 
+def checkin():
     return render_template("checkin.html")
 
 @app.route("/catalogo")

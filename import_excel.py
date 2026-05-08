@@ -1,39 +1,31 @@
+import psycopg2
+import psycopg2.extras
 import pandas as pd
-import sqlite3
 import os
 
-# Usamos la misma ruta que database.py para asegurar que es el mismo archivo
-DB_PATH = os.path.join(os.path.dirname(__file__), "biblioteca.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:Github_SupaBase@db.ndskqxfsufsglbqmdjfh.supabase.co:5432/postgres")
 
 def importar_excel_a_libros(archivo_excel):
-    """
-    Importa libros desde un Excel a la base de datos SQLite.
-    """
-    # 1. Verificar que el Excel exista
     if not os.path.exists(archivo_excel):
         print(f"❌ ERROR: No se encuentra el archivo '{archivo_excel}'.")
-        print("   Asegurate de que el archivo esté en la misma carpeta que este script.")
         return False
-    
+
     try:
         print(f"📖 Leyendo archivo: {archivo_excel}...")
         df = pd.read_excel(archivo_excel)
-        
-        # 2. Verificar columnas obligatorias
+
         columnas_requeridas = ["titulo", "autor", "categoria"]
         for col in columnas_requeridas:
             if col not in df.columns:
-                print(f" ERROR: Falta la columna '{col}' en el Excel.")
+                print(f"❌ ERROR: Falta la columna '{col}' en el Excel.")
                 return False
-        
-        conn = sqlite3.connect(DB_PATH)
+
+        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         c = conn.cursor()
-        
-        # 3. CRÍTICO: Crear la tabla SI NO EXISTE
-        # Esto evita el error si la app no corrió antes
+
         print("🛠️  Verificando estructura de la base de datos...")
         c.execute("""CREATE TABLE IF NOT EXISTS libros (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             titulo TEXT NOT NULL,
             capitulo TEXT,
             editorial TEXT,
@@ -45,24 +37,23 @@ def importar_excel_a_libros(archivo_excel):
             ubicacion TEXT,
             fecha_alta TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )""")
-        conn.commit() # Guardar la creación de la tabla
-        
+        conn.commit()
+
         print("📥 Insertando libros...")
         insertados = 0
         errores = 0
-        
+
         for index, row in df.iterrows():
             try:
-                # Validar que tenga título
                 titulo = row.get("titulo")
                 if pd.isna(titulo) or str(titulo).strip() == "":
                     continue
 
-                # Insertar con conversión a string para evitar errores de tipos
                 c.execute("""
-                    INSERT OR IGNORE INTO libros 
+                    INSERT INTO libros
                     (titulo, capitulo, editorial, autor, categoria, descripcion, isbn, disponible, ubicacion)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (isbn) DO NOTHING
                 """, (
                     str(titulo).strip(),
                     str(row.get("capitulo", "") or "").strip(),
@@ -70,7 +61,7 @@ def importar_excel_a_libros(archivo_excel):
                     str(row.get("autor", "") or "").strip(),
                     str(row.get("categoria", "") or "").strip(),
                     str(row.get("descripcion", "") or "").strip(),
-                    str(row.get("isbn", "") or "").strip(),
+                    str(row.get("isbn", "") or "").strip() or None,
                     1,
                     str(row.get("ubicacion", "") or "").strip()
                 ))
@@ -78,15 +69,16 @@ def importar_excel_a_libros(archivo_excel):
             except Exception as e:
                 print(f"⚠️ Error en fila {index}: {e}")
                 errores += 1
-        
+
         conn.commit()
+        c.close()
         conn.close()
-        
+
         print(f"\n✅ Importación terminada exitosamente:")
         print(f"   📚 Libros insertados: {insertados}")
         print(f"   ⚠️ Errores ignorados: {errores}")
         return True
-        
+
     except Exception as e:
         print(f"❌ Error fatal al importar: {e}")
         import traceback

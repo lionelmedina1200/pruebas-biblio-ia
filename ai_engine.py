@@ -12,32 +12,35 @@ def obtener_categorias():
     c = conn.cursor()
     c.execute("SELECT DISTINCT categoria FROM libros WHERE categoria IS NOT NULL AND categoria != '' ORDER BY categoria")
     cats = [row['categoria'] for row in c.fetchall()]
+    c.close()
     conn.close()
     return cats
 
 def buscar_por_categoria_exacta(categoria_buscada):
     conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM libros WHERE LOWER(categoria) = LOWER(?) ORDER BY titulo", (categoria_buscada,))
-    results = [dict(row) for row in cur.fetchall()]
+    c = conn.cursor()
+    c.execute("SELECT * FROM libros WHERE LOWER(categoria) = LOWER(%s) ORDER BY titulo", (categoria_buscada,))
+    results = [dict(row) for row in c.fetchall()]
+    c.close()
     conn.close()
     return results
 
 def buscar_libros_general(consulta):
     conn = get_db()
-    cur = conn.cursor()
+    c = conn.cursor()
     q = consulta.lower().strip()
-    cur.execute("""
-        SELECT * FROM libros 
-        WHERE LOWER(titulo) LIKE ? OR LOWER(autor) LIKE ? OR LOWER(categoria) LIKE ? OR LOWER(editorial) LIKE ?
+    c.execute("""
+        SELECT * FROM libros
+        WHERE LOWER(titulo) LIKE %s OR LOWER(autor) LIKE %s OR LOWER(categoria) LIKE %s OR LOWER(editorial) LIKE %s
         ORDER BY categoria, titulo
     """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
-    resultados = [dict(row) for row in cur.fetchall()]
+    resultados = [dict(row) for row in c.fetchall()]
+    c.close()
     conn.close()
     return resultados
 
 def formatear_libro_simple(libro):
-    disponible = "Sí" if libro.get("disponible", 0) == 1 else "No"
+    disponible = "Sí" if libro.get("disponible", 0) >= 1 else "No"
     return f"""Nombre: {libro.get('titulo', 'N/A')}
 Capítulos: {libro.get('capitulo', 'N/A') or 'N/A'}
 Editorial: {libro.get('editorial', 'N/A') or 'N/A'}
@@ -59,14 +62,14 @@ def formatear_lista_libros(libros):
 def detectar_categoria_en_consulta(consulta):
     consulta_lower = consulta.lower().strip()
     categorias = obtener_categorias()
-    
+
     for cat in categorias:
         cat_lower = cat.lower()
         if cat_lower in consulta_lower or consulta_lower in cat_lower:
             return cat
         if difflib.SequenceMatcher(None, cat_lower, consulta_lower).ratio() > 0.6:
             return cat
-            
+
     palabras_consulta = consulta_lower.split()
     for cat in categorias:
         cat_lower = cat.lower()
@@ -82,7 +85,7 @@ def llamar_groq(mensaje_usuario, contexto_libros=""):
     if not GROQ_API_KEY:
         print("⚠️ No hay GROQ_API_KEY configurada")
         return None
-    
+
     sistema = """Eres ChacaBot, una bibliotecaria amable y conversacional del Colegio Chacabuco.
 REGLAS IMPORTANTES:
 Respondé siempre en español, con tono natural y amable.
@@ -120,7 +123,7 @@ Categoría: [categoría]
     try:
         print(f"🚀 Llamando a Groq...")
         response = requests.post(GROQ_API_URL, json=payload, headers=headers, timeout=15)
-        
+
         if response.status_code == 200:
             data = response.json()
             respuesta = data['choices'][0]['message']['content'].strip()
@@ -129,7 +132,7 @@ Categoría: [categoría]
         else:
             print(f"❌ Error Groq {response.status_code}: {response.text}")
             return None
-            
+
     except Exception as e:
         print(f"❌ Error de conexión: {e}")
         return None
@@ -137,10 +140,10 @@ Categoría: [categoría]
 def procesar_consulta(consulta):
     print(f"\n🔍 Consulta recibida: '{consulta}'")
     consulta_lower = consulta.lower().strip()
-    
+
     saludos = [
         "hola", "buenas", "hey", "hi", "buen dia", "buenas tardes", "buenas noches",
-        "como estas", "como andas", "todo bien", "que tal", "como va", "que onda", 
+        "como estas", "como andas", "todo bien", "que tal", "como va", "que onda",
         "hola chaca", "chaca", "qué hacés", "que haces", "como te va"
     ]
     if any(s in consulta_lower for s in saludos):
@@ -163,7 +166,7 @@ def procesar_consulta(consulta):
     if categoria_detectada:
         print(f"→ Detectada categoría: {categoria_detectada}")
         libros = buscar_por_categoria_exacta(categoria_detectada)
-        
+
         if libros:
             print(f"→ Encontrados {len(libros)} libros")
             contexto = formatear_lista_libros(libros)
@@ -175,7 +178,7 @@ def procesar_consulta(consulta):
     if len(consulta_lower.split()) >= 2:
         print("→ Búsqueda general")
         libros = buscar_libros_general(consulta)
-        
+
         if libros:
             print(f"→ Encontrados {len(libros)} libros")
             contexto = formatear_lista_libros(libros)
