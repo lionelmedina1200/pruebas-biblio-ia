@@ -157,6 +157,29 @@ def listar_reservas():
     conn.close()
     return jsonify(reservas)
 
+# --- NUEVO ENDPOINT: marcar reserva como prestada ---
+@app.route("/api/reservas/<int:reserva_id>/prestar", methods=["PUT"])
+@bibliotecario_required
+def marcar_prestado(reserva_id):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT id, estado FROM reservas WHERE id = ?", (reserva_id,))
+        reserva = c.fetchone()
+        if not reserva:
+            conn.close()
+            return jsonify({"error": "Reserva no encontrada"}), 404
+        if reserva["estado"] != "pendiente":
+            conn.close()
+            return jsonify({"error": "La reserva no está en estado pendiente"}), 400
+        c.execute("UPDATE reservas SET estado = 'prestado' WHERE id = ?", (reserva_id,))
+        conn.commit()
+        conn.close()
+        return jsonify({"mensaje": "Reserva marcada como prestada correctamente"})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "Error al actualizar la reserva"}), 500
+
 @app.route("/api/metricas")
 @bibliotecario_required
 def metricas():
@@ -256,6 +279,6 @@ def get_session():
     return jsonify({"logged_in": False})
 
 if __name__ == "__main__":
-    print("🚀 Iniciando Biblioteca IA en http://localhost:5000")
+    print("🚀 Iniciando Biblioteca IA")
     print("📝 Usuario Bibliotecaria: biblio / biblio123")
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=False, host="0.0.0.0", port=5000)

@@ -47,10 +47,41 @@
             document.getElementById('m-alumnos').textContent = m.total_alumnos;
             document.getElementById('m-reservas').textContent = m.reservas_pendientes;
             document.getElementById('table-consultas').innerHTML = m.consultas_recientes.map(q=>`<tr><td>${q.consulta}</td><td>${q.resultados}</td><td>${q.timestamp.split(' ')[0]}</td></tr>`).join('');
-            
+
             const r = await fetch('/api/reservas').then(r=>r.json());
-            document.getElementById('table-reservas').innerHTML = r.map(x=>`<tr><td>${x.nombre}</td><td>${x.libro_titulo||'General'}</td><td>${x.fecha_reserva.split(' ')[0]}</td><td><span class="badge ${x.estado}">${x.estado}</span></td></tr>`).join('');
+            document.getElementById('table-reservas').innerHTML = r.map(x => {
+                const badgeClass = x.estado === 'prestado' ? 'badge-prestado' : 'badge-pendiente';
+                const badgeLabel = x.estado === 'prestado' ? 'Prestado' : 'Pendiente';
+                const boton = x.estado === 'pendiente'
+                    ? `<button class="btn-prestar" onclick="marcarPrestado(${x.id})">Marcar Prestado</button>`
+                    : '';
+                return `<tr>
+                    <td>${x.nombre}</td>
+                    <td>${x.libro_titulo || 'General'}</td>
+                    <td>${x.fecha_reserva.split(' ')[0]}</td>
+                    <td>
+                        <span class="badge ${badgeClass}">${badgeLabel}</span>
+                        ${boton}
+                    </td>
+                </tr>`;
+            }).join('');
         }
+
+        async function marcarPrestado(reservaId) {
+            if (!confirm('¿Marcar esta reserva como Prestado?')) return;
+            try {
+                const res = await fetch(`/api/reservas/${reservaId}/prestar`, { method: 'PUT' });
+                const data = await res.json();
+                if (res.ok) {
+                    load();
+                } else {
+                    alert('Error: ' + (data.error || 'No se pudo actualizar la reserva'));
+                }
+            } catch (err) {
+                alert('Error de conexión al actualizar la reserva');
+            }
+        }
+
         load(); setInterval(load, 30000);
     </script>
 </body>
