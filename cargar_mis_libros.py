@@ -6,7 +6,7 @@ import os
 import uuid
 from urllib.parse import urlparse
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:Github_SupaBase@db.ndskqxfsufsglbqmdjfh.supabase.co:5432/postgres")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres.ndskqxfsufsglbqmdjfh:Github_SupaBase@aws-1-us-west-1.pooler.supabase.com:6543/postgres")
 
 def parse_db_url(url):
     r = urlparse(url)
