@@ -29,13 +29,13 @@ async function loadLibros(page = 1) {
                     </div>
                 </td>
                 <td>
-                    <span class="badge ${l.disponible ? 'disponible' : 'no-disponible'}">
-                        ${l.disponible ? '✅ Disp.' : '❌ Prestado'}
+                    <span class="badge ${l.disponible > 0 ? 'disponible' : 'no-disponible'}">
+                        ${l.disponible > 0 ? `✅ ${l.disponible} en stock` : '❌ Sin stock'}
                     </span>
                 </td>
                 <td>
                     <button class="btn-toggle" onclick="toggleDisp(${l.id}, ${l.disponible})">
-                        ${l.disponible ? 'Marcar Prestado' : 'Marcar Disp.'}
+                        ${l.disponible > 0 ? '➖ Marcar Prestado' : '➕ Marcar Devuelto'}
                     </button>
                 </td>
             </tr>
@@ -66,7 +66,10 @@ function renderPagination(totalPages, current) {
 }
 
 async function toggleDisp(id, actual) {
-    const nuevoStock = actual ? 0 : 1;
+    // actual = stock actual del libro
+    // Si hay stock > 0, descontamos 1 (marcar prestado)
+    // Si stock = 0, sumamos 1 (marcar disponible / devuelto)
+    const nuevoStock = actual > 0 ? actual - 1 : actual + 1;
     try {
         const res = await fetch(`/api/libros/${id}/stock`, {
             method: 'PUT',

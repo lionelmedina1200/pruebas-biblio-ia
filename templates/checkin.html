@@ -96,18 +96,47 @@
     
     <script src="/static/js/auth.js"></script>
     <script>
-        // Verificar si ya aceptó las políticas en esta sesión
-        if (sessionStorage.getItem('politicas_aceptadas') === 'true') {
-            document.getElementById('modal-politicas').style.display = 'none';
-            document.getElementById('checkin-content').style.display = 'block';
+        /*
+         * POLÍTICAS DE PRÉSTAMO
+         * Cada usuario tiene su propia clave en localStorage: politicas_v2_{username}_{id}
+         * Esto garantiza que cada cuenta tenga que aceptar el reglamento por separado,
+         * sin importar si otro usuario ya lo aceptó en el mismo navegador.
+         * Los usuarios guest (sin login) SIEMPRE ven el modal.
+         */
+        async function initPoliticas() {
+            let storageKey = null; // null = sin login → siempre mostrar modal
+
+            try {
+                const res = await fetch('/api/session', { credentials: 'include' });
+                const data = await res.json();
+                if (data.logged_in && data.usuario) {
+                    // Clave única por usuario: combina username + id para evitar colisiones
+                    storageKey = `politicas_v2_${data.usuario.username}_${data.usuario.id}`;
+                }
+            } catch (err) { /* si falla la red, se trata como guest: siempre muestra modal */ }
+
+            const modal = document.getElementById('modal-politicas');
+            const content = document.getElementById('checkin-content');
+
+            // Solo saltear el modal si el usuario está logueado Y ya aceptó en ESTE dispositivo
+            if (storageKey && localStorage.getItem(storageKey) === 'true') {
+                modal.style.display = 'none';
+                content.style.display = 'block';
+            }
+            // En cualquier otro caso (guest o usuario que nunca aceptó) → el modal queda visible
+
+            // Botón aceptar políticas
+            document.getElementById('btn-aceptar-politicas').addEventListener('click', function() {
+                if (storageKey) {
+                    // Guardar aceptación SOLO para este usuario específico
+                    localStorage.setItem(storageKey, 'true');
+                }
+                modal.style.display = 'none';
+                content.style.display = 'block';
+            });
         }
 
-        // Botón aceptar políticas
-        document.getElementById('btn-aceptar-politicas').addEventListener('click', function() {
-            sessionStorage.setItem('politicas_aceptadas', 'true');
-            document.getElementById('modal-politicas').style.display = 'none';
-            document.getElementById('checkin-content').style.display = 'block';
-        });
+        initPoliticas();
 
         // Pre-cargar nombre y email del usuario logueado
         async function preCargarUsuario() {
