@@ -1,13 +1,41 @@
 import os
-import psycopg2
-import psycopg2.extras
+import pg8000
+import pg8000.native
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import urlparse
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:Github_SupaBase@db.ndskqxfsufsglbqmdjfh.supabase.co:5432/postgres")
 
+def parse_db_url(url):
+    r = urlparse(url)
+    return {
+        "host": r.hostname,
+        "port": r.port or 5432,
+        "database": r.path.lstrip("/"),
+        "user": r.username,
+        "password": r.password,
+    }
+
 def get_db():
-    conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    params = parse_db_url(DATABASE_URL)
+    conn = pg8000.connect(
+        host=params["host"],
+        port=params["port"],
+        database=params["database"],
+        user=params["user"],
+        password=params["password"],
+        ssl_context=True
+    )
     return conn
+
+def fetchall_as_dicts(cursor):
+    cols = [d[0] for d in cursor.description]
+    return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+def fetchone_as_dict(cursor):
+    cols = [d[0] for d in cursor.description]
+    row = cursor.fetchone()
+    return dict(zip(cols, row)) if row else None
 
 def init_db():
     conn = get_db()
@@ -55,10 +83,8 @@ def init_db():
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
-    # Crear usuario bibliotecario si no existe
-    c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = %s", ('bibliotecario',))
-    resultado = c.fetchone()
-    count = resultado['count'] if resultado else 0
+    c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = 'bibliotecario'")
+    count = c.fetchone()[0]
     if count == 0:
         hashed_pw = generate_password_hash("biblio123", method='pbkdf2:sha256')
         c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol)
@@ -73,11 +99,11 @@ def verificar_usuario(username, password):
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT * FROM usuarios WHERE username = %s AND activo = 1", (username,))
-    usuario = c.fetchone()
+    usuario = fetchone_as_dict(c)
     c.close()
     conn.close()
     if usuario and check_password_hash(usuario["password"], password):
-        return dict(usuario)
+        return usuario
     return None
 
 def registrar_usuario(username, password, nombre, email, rol="alumno"):
@@ -92,5 +118,5 @@ def registrar_usuario(username, password, nombre, email, rol="alumno"):
         c.close()
         conn.close()
         return True
-    except psycopg2.IntegrityError:
+    except Exception:
         return False

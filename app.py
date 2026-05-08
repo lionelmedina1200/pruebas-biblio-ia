@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify, session
-from database import init_db, get_db, verificar_usuario, registrar_usuario
+from database import init_db, get_db, verificar_usuario, registrar_usuario, fetchall_as_dicts, fetchone_as_dict
 from ai_engine import procesar_consulta
-from auth import login_required, bibliotecario_required, es_bibliotecario
+from auth import login_required, bibliotecario_required
 import traceback
 
 app = Flask(__name__)
@@ -21,10 +21,8 @@ def api_login():
         data = request.json or {}
         username = data.get("username", "").strip()
         password = data.get("password", "")
-        
         if not username or not password:
             return jsonify({"error": "Usuario y contraseña son obligatorios"}), 400
-        
         usuario = verificar_usuario(username, password)
         if usuario:
             session["usuario"] = {
@@ -59,10 +57,8 @@ def api_registro():
         password = data.get("password", "")
         nombre = data.get("nombre", "").strip()
         email = data.get("email", "").strip()
-        
         if not all([username, password, nombre, email]):
             return jsonify({"error": "Todos los campos son obligatorios"}), 400
-        
         if registrar_usuario(username, password, nombre, email, "alumno"):
             return jsonify({"mensaje": f"Alumno {nombre} registrado correctamente"})
         else:
@@ -89,29 +85,22 @@ def api_libros():
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 10, type=int)
     busqueda = request.args.get("busqueda", "")
-
     conn = get_db()
     c = conn.cursor()
     like = f"%{busqueda}%"
-
     if busqueda:
         c.execute("SELECT COUNT(*) FROM libros WHERE titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s", (like, like, like))
     else:
         c.execute("SELECT COUNT(*) FROM libros")
-
-    total = c.fetchone()["count"]
+    total = c.fetchone()[0]
     offset = (page - 1) * per_page
-
     if busqueda:
-        c.execute("""SELECT * FROM libros WHERE titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s
-                     ORDER BY id DESC LIMIT %s OFFSET %s""", (like, like, like, per_page, offset))
+        c.execute("SELECT * FROM libros WHERE titulo ILIKE %s OR autor ILIKE %s OR categoria ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s", (like, like, like, per_page, offset))
     else:
         c.execute("SELECT * FROM libros ORDER BY id DESC LIMIT %s OFFSET %s", (per_page, offset))
-
-    libros = [dict(row) for row in c.fetchall()]
+    libros = fetchall_as_dicts(c)
     c.close()
     conn.close()
-
     return jsonify({
         "libros": libros,
         "total": total,
@@ -127,12 +116,10 @@ def crear_reserva():
         data = request.json or {}
         nombre = data.get("nombre", "")
         email = data.get("email", "")
-        libro_id = data.get("libro_id")
+        libro_id = data.get("libro_id") or None
         usuario_id = session["usuario"]["id"]
-        
         if not nombre or not email:
             return jsonify({"error": "Nombre y email son obligatorios"}), 400
-        
         conn = get_db()
         c = conn.cursor()
         c.execute("INSERT INTO reservas (usuario_id, nombre, email, libro_id) VALUES (%s, %s, %s, %s)",
@@ -150,12 +137,13 @@ def crear_reserva():
 def listar_reservas():
     conn = get_db()
     c = conn.cursor()
-    c.execute("""SELECT r.*, l.titulo as libro_titulo, u.nombre as usuario_nombre
+    c.execute("""SELECT r.id, r.nombre, r.email, r.fecha_reserva, r.estado,
+                        l.titulo as libro_titulo, u.nombre as usuario_nombre
                  FROM reservas r
                  LEFT JOIN libros l ON r.libro_id = l.id
                  LEFT JOIN usuarios u ON r.usuario_id = u.id
                  ORDER BY r.fecha_reserva DESC""")
-    reservas = [dict(row) for row in c.fetchall()]
+    reservas = fetchall_as_dicts(c)
     c.close()
     conn.close()
     return jsonify(reservas)
@@ -167,14 +155,12 @@ def marcar_prestado(reserva_id):
         conn = get_db()
         c = conn.cursor()
         c.execute("SELECT id, estado FROM reservas WHERE id = %s", (reserva_id,))
-        reserva = c.fetchone()
+        reserva = fetchone_as_dict(c)
         if not reserva:
-            c.close()
-            conn.close()
+            c.close(); conn.close()
             return jsonify({"error": "Reserva no encontrada"}), 404
         if reserva["estado"] != "pendiente":
-            c.close()
-            conn.close()
+            c.close(); conn.close()
             return jsonify({"error": "La reserva no está en estado pendiente"}), 400
         c.execute("UPDATE reservas SET estado = 'prestado' WHERE id = %s", (reserva_id,))
         conn.commit()
@@ -191,19 +177,19 @@ def metricas():
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT COUNT(*) FROM metricas")
-    total = c.fetchone()["count"]
+    total = c.fetchone()[0]
     c.execute("SELECT AVG(resultados) FROM metricas")
-    avg = c.fetchone()["avg"] or 0
+    avg = c.fetchone()[0] or 0
     c.execute("SELECT consulta, resultados, timestamp FROM metricas ORDER BY timestamp DESC LIMIT 10")
-    recientes = [dict(row) for row in c.fetchall()]
+    recientes = fetchall_as_dicts(c)
     c.execute("SELECT COUNT(*) FROM libros")
-    total_libros = c.fetchone()["count"]
+    total_libros = c.fetchone()[0]
     c.execute("SELECT COUNT(*) FROM libros WHERE disponible > 0")
-    disponibles = c.fetchone()["count"]
+    disponibles = c.fetchone()[0]
     c.execute("SELECT COUNT(*) FROM reservas WHERE estado = 'pendiente'")
-    pendientes = c.fetchone()["count"]
+    pendientes = c.fetchone()[0]
     c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = 'alumno'")
-    total_alumnos = c.fetchone()["count"]
+    total_alumnos = c.fetchone()[0]
     c.close()
     conn.close()
     return jsonify({
@@ -221,24 +207,20 @@ def metricas():
 def actualizar_stock(libro_id):
     data = request.json or {}
     cantidad = data.get("cantidad")
-
     if cantidad is None:
         return jsonify({"error": "La cantidad es obligatoria"}), 400
-
     try:
         cantidad = int(cantidad)
         if cantidad < 0:
             return jsonify({"error": "La cantidad no puede ser negativa"}), 400
     except ValueError:
         return jsonify({"error": "La cantidad debe ser un número"}), 400
-
     conn = get_db()
     c = conn.cursor()
     c.execute("UPDATE libros SET disponible = %s WHERE id = %s", (cantidad, libro_id))
     conn.commit()
     c.close()
     conn.close()
-
     return jsonify({"mensaje": "Stock actualizado correctamente", "cantidad": cantidad})
 
 @app.route("/api/usuarios")
@@ -247,7 +229,7 @@ def listar_usuarios():
     conn = get_db()
     c = conn.cursor()
     c.execute("SELECT id, username, nombre, email, rol, activo, fecha_creacion FROM usuarios ORDER BY id DESC")
-    usuarios = [dict(row) for row in c.fetchall()]
+    usuarios = fetchall_as_dicts(c)
     c.close()
     conn.close()
     return jsonify(usuarios)
