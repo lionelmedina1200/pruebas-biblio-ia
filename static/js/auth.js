@@ -56,6 +56,15 @@ function updateUI(usuario) {
             if(navRegistro) navRegistro.style.display = 'block';
             if(navLibros) navLibros.style.display = 'block';
             if(navCatalogo) navCatalogo.style.display = 'none';
+        } else if (usuario.rol === 'admin') {
+            if(navDashboard) navDashboard.style.display = 'none';
+            if(navRegistro) navRegistro.style.display = 'none';
+            if(navLibros) navLibros.style.display = 'none';
+            if(navCatalogo) navCatalogo.style.display = 'none';
+            // Si el admin está en una página que no es /logs, redirigirlo
+            if (!window.location.pathname.startsWith('/logs')) {
+                window.location.href = '/logs';
+            }
         } else {
             if(navCatalogo) navCatalogo.style.display = 'block';
         }
