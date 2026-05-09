@@ -1,7 +1,9 @@
 import os
 import traceback
-from flask import Flask, render_template, request, jsonify, session
+import requests as http_requests
+from flask import Flask, render_template, request, jsonify, session, redirect
 from database import init_db, get_db, verificar_usuario, registrar_usuario, fetchall_as_dicts, fetchone_as_dict
+from google_auth_oauthlib.flow import Flow
 from ai_engine import procesar_consulta
 from auth import login_required, bibliotecario_required, admin_required
 
@@ -18,7 +20,134 @@ def registrar_log(conn_cursor, usuario_id, usuario_nombre, accion, tabla, regist
         pass
 
 app = Flask(__name__)
-app.secret_key = "biblioteca_secreta_segura_2026_cambiame"
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "biblioteca_secreta_segura_2026_cambiame")
+
+# ── Google OAuth config ──────────────────────────────────────────────────────
+GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+# En Render (HTTPS) no hace falta; en local (HTTP) sí
+os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "0")
+
+GOOGLE_SCOPES = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "openid",
+]
+
+def make_google_flow():
+    """Crea el flow de OAuth2 con las credenciales de entorno."""
+    return Flow.from_client_config(
+        {
+            "web": {
+                "client_id":     GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "auth_uri":      "https://accounts.google.com/o/oauth2/auth",
+                "token_uri":     "https://oauth2.googleapis.com/token",
+                "redirect_uris": ["https://pruebas-biblio-ia.onrender.com/auth/google/callback"],
+            }
+        },
+        scopes=GOOGLE_SCOPES,
+        redirect_uri="https://pruebas-biblio-ia.onrender.com/auth/google/callback",
+    )
+
+@app.route("/auth/google")
+def auth_google():
+    """Redirige al usuario a la pantalla de consentimiento de Google."""
+    if not GOOGLE_CLIENT_ID:
+        return "Error: Google OAuth no está configurado en el servidor.", 500
+    flow = make_google_flow()
+    auth_url, state = flow.authorization_url(
+        access_type="offline",
+        include_granted_scopes="true",
+        prompt="select_account",   # fuerza elegir cuenta siempre
+    )
+    session["oauth_state"] = state
+    return redirect(auth_url)
+
+@app.route("/auth/google/callback")
+def auth_google_callback():
+    """Google redirige acá después de que el usuario aceptó."""
+    # Verificar state para prevenir CSRF
+    if request.args.get("state") != session.get("oauth_state"):
+        return redirect("/?error=oauth_state")
+
+    flow = make_google_flow()
+    try:
+        flow.fetch_token(authorization_response=request.url.replace("http://", "https://"))
+    except Exception as e:
+        traceback.print_exc()
+        return redirect("/?error=oauth_token")
+
+    # Obtener info del usuario desde Google
+    creds = flow.credentials
+    userinfo_resp = http_requests.get(
+        "https://www.googleapis.com/oauth2/v2/userinfo",
+        headers={"Authorization": f"Bearer {creds.token}"}
+    )
+    if userinfo_resp.status_code != 200:
+        return redirect("/?error=userinfo")
+
+    ginfo = userinfo_resp.json()
+    google_id = ginfo.get("id")
+    email     = ginfo.get("email", "")
+    nombre    = ginfo.get("name", email.split("@")[0])
+    picture   = ginfo.get("picture", "")
+
+    if not google_id or not email:
+        return redirect("/?error=no_email")
+
+    # Buscar o crear el alumno en la BD
+    try:
+        conn = get_db()
+        c = conn.cursor()
+
+        # Buscar por google_id o por email
+        c.execute("SELECT id, username, nombre, email, rol FROM usuarios WHERE google_id = %s OR email = %s LIMIT 1",
+                  (google_id, email))
+        row = fetchone_as_dict(c)
+
+        if row:
+            # Si existe pero no tiene google_id aún, actualizarlo
+            if not row.get("google_id"):
+                c.execute("UPDATE usuarios SET google_id = %s WHERE id = %s", (google_id, row["id"]))
+                conn.commit()
+            # Solo alumnos pueden loguarse con Google
+            if row["rol"] != "alumno":
+                c.close(); conn.close()
+                return redirect("/?error=no_alumno")
+            usuario_db = row
+        else:
+            # Crear nuevo alumno
+            username = email.split("@")[0]  # username = parte antes del @
+            # Evitar username duplicado
+            c.execute("SELECT COUNT(*) FROM usuarios WHERE username = %s", (username,))
+            count = c.fetchone()
+            count = count[0] if count else 0
+            if count:
+                username = f"{username}_{google_id[:6]}"
+            c.execute("""
+                INSERT INTO usuarios (username, password, nombre, email, rol, google_id)
+                VALUES (%s, %s, %s, %s, 'alumno', %s)
+                RETURNING id, username, nombre, email, rol
+            """, (username, "__google__", nombre, email, google_id))
+            usuario_db = fetchone_as_dict(c)
+            conn.commit()
+
+        c.close(); conn.close()
+
+        session["usuario"] = {
+            "id":       usuario_db["id"],
+            "username": usuario_db["username"],
+            "nombre":   usuario_db["nombre"],
+            "email":    usuario_db["email"],
+            "rol":      usuario_db["rol"],
+            "picture":  picture,
+        }
+        return redirect("/")
+
+    except Exception as e:
+        traceback.print_exc()
+        return redirect("/?error=db")
 
 # Inicializar DB una sola vez al arrancar (no en cada request)
 _db_initialized = False

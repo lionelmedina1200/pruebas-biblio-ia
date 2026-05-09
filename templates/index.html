@@ -84,5 +84,30 @@
     <script src="/static/js/main.js"></script>
     <script src="/static/js/chat.js"></script>
     <script src="/static/js/auth.js"></script>
+    <script>
+        // Mostrar error de OAuth en el modal de login si viene en la URL
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const err = params.get('error');
+            if (!err) return;
+            const msgs = {
+                'no_alumno':   '⛔ Esta cuenta no es de alumno. Solo los alumnos pueden ingresar con Google.',
+                'no_email':    '⚠️ No se pudo obtener el email de tu cuenta de Google.',
+                'oauth_state': '⚠️ Error de seguridad en el proceso. Intentá de nuevo.',
+                'oauth_token': '⚠️ Error al obtener el token de Google. Intentá de nuevo.',
+                'db':          '⚠️ Error interno. Contactá al administrador.',
+            };
+            const msg = msgs[err] || '⚠️ Error al ingresar con Google.';
+            // Abrir modal y mostrar error
+            document.addEventListener('DOMContentLoaded', () => {
+                const modal = document.getElementById('login-modal');
+                if (modal) modal.style.display = 'flex';
+                const errEl = document.getElementById('login-error');
+                if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; }
+                // Limpiar URL
+                window.history.replaceState({}, '', '/');
+            });
+        })();
+    </script>
 </body>
 </html>

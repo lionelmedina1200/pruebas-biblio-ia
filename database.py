@@ -52,6 +52,12 @@ def init_db():
         fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
+    # Migración: agregar google_id si la tabla ya existe sin esa columna
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE")
+    except Exception:
+        pass
+
     c.execute("""CREATE TABLE IF NOT EXISTS libros (
         id SERIAL PRIMARY KEY,
         titulo TEXT NOT NULL,
