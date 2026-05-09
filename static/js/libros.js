@@ -87,9 +87,78 @@ async function toggleDisp(id, actual) {
     }
 }
 
-// Event Listeners
+// ── Modal agregar libro ──────────────────────────────────────
+function abrirModalAgregar() {
+    document.getElementById('modal-agregar').classList.add('open');
+    document.getElementById('nuevo-titulo').focus();
+    document.getElementById('agregar-error').style.display = 'none';
+    document.getElementById('agregar-ok').style.display = 'none';
+}
+
+function cerrarModalAgregar() {
+    document.getElementById('modal-agregar').classList.remove('open');
+    // Limpiar campos
+    ['nuevo-titulo','nuevo-autor','nuevo-editorial','nuevo-capitulo'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('nuevo-stock').value = '1';
+}
+
+async function guardarLibro() {
+    const titulo    = document.getElementById('nuevo-titulo').value.trim();
+    const autor     = document.getElementById('nuevo-autor').value.trim();
+    const editorial = document.getElementById('nuevo-editorial').value.trim();
+    const capitulo  = document.getElementById('nuevo-capitulo').value.trim();
+    const stock     = parseInt(document.getElementById('nuevo-stock').value) || 1;
+    const errorEl   = document.getElementById('agregar-error');
+    const okEl      = document.getElementById('agregar-ok');
+
+    errorEl.style.display = 'none';
+    okEl.style.display = 'none';
+
+    // Validación frontend: los 3 campos obligatorios
+    if (!titulo || !autor || !editorial) {
+        errorEl.textContent = '⚠️ Título, autor y editorial son obligatorios.';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/libros', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titulo, autor, editorial, capitulo, stock })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            okEl.textContent = '✅ ' + data.mensaje;
+            okEl.style.display = 'block';
+            setTimeout(() => {
+                cerrarModalAgregar();
+                loadLibros(1); // Refrescar lista
+            }, 1200);
+        } else {
+            errorEl.textContent = '❌ ' + (data.error || 'Error al guardar el libro');
+            errorEl.style.display = 'block';
+        }
+    } catch (err) {
+        errorEl.textContent = '❌ Error de conexión. Intentá de nuevo.';
+        errorEl.style.display = 'block';
+    }
+}
+
+// Cerrar modal con Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') cerrarModalAgregar();
+});
+
+// ── Event Listeners con debounce para búsqueda más rápida ────
+let searchDebounce = null;
 if (document.getElementById('admin-search')) {
-    document.getElementById('admin-search').addEventListener('input', () => loadLibros(1));
+    document.getElementById('admin-search').addEventListener('input', () => {
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(() => loadLibros(1), 350); // espera 350ms antes de buscar
+    });
 }
 
 if (document.getElementById('admin-per-page')) {

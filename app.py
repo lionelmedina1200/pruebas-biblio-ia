@@ -8,9 +8,15 @@ from auth import login_required, bibliotecario_required
 app = Flask(__name__)
 app.secret_key = "biblioteca_secreta_segura_2026_cambiame"
 
+# Inicializar DB una sola vez al arrancar (no en cada request)
+_db_initialized = False
+
 @app.before_request
 def setup_db():
-    init_db()
+    global _db_initialized
+    if not _db_initialized:
+        init_db()
+        _db_initialized = True
 
 @app.route("/")
 def index():
@@ -155,7 +161,8 @@ def marcar_prestado(reserva_id):
     try:
         conn = get_db()
         c = conn.cursor()
-        c.execute("SELECT id, estado FROM reservas WHERE id = %s", (reserva_id,))
+        # Traer la reserva junto con el libro_id
+        c.execute("SELECT id, estado, libro_id FROM reservas WHERE id = %s", (reserva_id,))
         reserva = fetchone_as_dict(c)
         if not reserva:
             c.close(); conn.close()
@@ -163,7 +170,18 @@ def marcar_prestado(reserva_id):
         if reserva["estado"] != "pendiente":
             c.close(); conn.close()
             return jsonify({"error": "La reserva no está en estado pendiente"}), 400
+
+        # Marcar la reserva como prestada
         c.execute("UPDATE reservas SET estado = 'prestado' WHERE id = %s", (reserva_id,))
+
+        # Si la reserva tiene un libro asociado, descontar 1 del stock (sin bajar de 0)
+        if reserva["libro_id"]:
+            c.execute("""
+                UPDATE libros
+                SET disponible = GREATEST(disponible - 1, 0)
+                WHERE id = %s
+            """, (reserva["libro_id"],))
+
         conn.commit()
         c.close()
         conn.close()
@@ -171,6 +189,69 @@ def marcar_prestado(reserva_id):
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": "Error al actualizar la reserva"}), 500
+
+@app.route("/api/reservas/<int:reserva_id>/devolver", methods=["PUT"])
+@bibliotecario_required
+def marcar_devuelto(reserva_id):
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT id, estado, libro_id FROM reservas WHERE id = %s", (reserva_id,))
+        reserva = fetchone_as_dict(c)
+        if not reserva:
+            c.close(); conn.close()
+            return jsonify({"error": "Reserva no encontrada"}), 404
+        if reserva["estado"] != "prestado":
+            c.close(); conn.close()
+            return jsonify({"error": "La reserva no está en estado prestado"}), 400
+        # Marcar como devuelto
+        c.execute("UPDATE reservas SET estado = 'devuelto' WHERE id = %s", (reserva_id,))
+        # Sumar 1 al stock del libro asociado
+        if reserva["libro_id"]:
+            c.execute("""
+                UPDATE libros
+                SET disponible = disponible + 1
+                WHERE id = %s
+            """, (reserva["libro_id"],))
+        conn.commit()
+        c.close()
+        conn.close()
+        return jsonify({"mensaje": "Reserva marcada como devuelta correctamente"})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "Error al actualizar la reserva"}), 500
+
+@app.route("/api/libros", methods=["POST"])
+@bibliotecario_required
+def agregar_libro():
+    try:
+        data = request.json or {}
+        titulo = data.get("titulo", "").strip()
+        autor = data.get("autor", "").strip()
+        editorial = data.get("editorial", "").strip()
+        capitulo = data.get("capitulo", "").strip()
+        stock = data.get("stock", 1)
+        if not titulo or not autor or not editorial:
+            return jsonify({"error": "Título, autor y editorial son obligatorios"}), 400
+        try:
+            stock = int(stock)
+            if stock < 0:
+                stock = 1
+        except (ValueError, TypeError):
+            stock = 1
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO libros (titulo, autor, editorial, capitulo, categoria, disponible)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (titulo, autor, editorial, capitulo, "General", stock))
+        conn.commit()
+        c.close()
+        conn.close()
+        return jsonify({"mensaje": f"Libro '{titulo}' agregado correctamente"}), 201
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "Error al agregar el libro"}), 500
 
 @app.route("/api/metricas")
 @bibliotecario_required
