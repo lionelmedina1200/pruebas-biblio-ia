@@ -88,6 +88,8 @@ async function toggleDisp(id, actual) {
 }
 
 // ── Modal agregar libro ──────────────────────────────────────
+let capitulosCount = 0;
+
 function abrirModalAgregar() {
     document.getElementById('modal-agregar').classList.add('open');
     document.getElementById('nuevo-titulo').focus();
@@ -97,37 +99,90 @@ function abrirModalAgregar() {
 
 function cerrarModalAgregar() {
     document.getElementById('modal-agregar').classList.remove('open');
-    // Limpiar campos
-    ['nuevo-titulo','nuevo-autor','nuevo-editorial','nuevo-capitulo'].forEach(id => {
+    ['nuevo-titulo','nuevo-autor','nuevo-editorial'].forEach(id => {
         document.getElementById(id).value = '';
     });
-    document.getElementById('nuevo-stock').value = '1';
+    document.getElementById('nuevo-stock').value = '10';
+    // Limpiar capítulos
+    document.getElementById('capitulos-lista').innerHTML = '';
+    document.getElementById('capitulos-vacio').style.display = 'block';
+    capitulosCount = 0;
+}
+
+function agregarCapituloInput() {
+    capitulosCount++;
+    const lista = document.getElementById('capitulos-lista');
+    document.getElementById('capitulos-vacio').style.display = 'none';
+    const row = document.createElement('div');
+    row.className = 'capitulo-row';
+    row.id = `cap-row-${capitulosCount}`;
+    const idx = capitulosCount;
+    row.innerHTML = `
+        <span class="cap-num">${idx}.</span>
+        <input type="text"
+               id="cap-${idx}"
+               class="form-input cap-input"
+               placeholder="Ej: Introducción a la biología"
+               onkeydown="capKeydown(event, ${idx})">
+        <button type="button" class="btn-del-cap" onclick="eliminarCapitulo(${idx})" title="Eliminar">✕</button>
+    `;
+    lista.appendChild(row);
+    document.getElementById(`cap-${idx}`).focus();
+}
+
+function eliminarCapitulo(idx) {
+    const row = document.getElementById(`cap-row-${idx}`);
+    if (row) row.remove();
+    // Si no quedan capítulos, mostrar hint
+    if (document.querySelectorAll('.capitulo-row').length === 0) {
+        document.getElementById('capitulos-vacio').style.display = 'block';
+    }
+}
+
+function capKeydown(event, idx) {
+    // Enter en un campo de capítulo agrega el siguiente
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        agregarCapituloInput();
+    }
+}
+
+function obtenerCapitulos() {
+    const inputs = document.querySelectorAll('.cap-input');
+    const caps = [];
+    inputs.forEach(inp => {
+        const val = inp.value.trim();
+        if (val) caps.push(val);
+    });
+    return caps;
 }
 
 async function guardarLibro() {
     const titulo    = document.getElementById('nuevo-titulo').value.trim();
     const autor     = document.getElementById('nuevo-autor').value.trim();
     const editorial = document.getElementById('nuevo-editorial').value.trim();
-    const capitulo  = document.getElementById('nuevo-capitulo').value.trim();
-    const stock     = parseInt(document.getElementById('nuevo-stock').value) || 1;
+    const capitulos = obtenerCapitulos(); // array de strings
+    const stock     = parseInt(document.getElementById('nuevo-stock').value) || 10;
     const errorEl   = document.getElementById('agregar-error');
     const okEl      = document.getElementById('agregar-ok');
 
     errorEl.style.display = 'none';
     okEl.style.display = 'none';
 
-    // Validación frontend: los 3 campos obligatorios
     if (!titulo || !autor || !editorial) {
         errorEl.textContent = '⚠️ Título, autor y editorial son obligatorios.';
         errorEl.style.display = 'block';
         return;
     }
 
+    // Enviar capítulos como string separado por "||" (el backend lo almacena en el campo capitulo)
+    const capituloStr = capitulos.join(' || ');
+
     try {
         const res = await fetch('/api/libros', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ titulo, autor, editorial, capitulo, stock })
+            body: JSON.stringify({ titulo, autor, editorial, capitulo: capituloStr, stock })
         });
         const data = await res.json();
         if (res.ok) {
@@ -135,7 +190,7 @@ async function guardarLibro() {
             okEl.style.display = 'block';
             setTimeout(() => {
                 cerrarModalAgregar();
-                loadLibros(1); // Refrescar lista
+                loadLibros(1);
             }, 1200);
         } else {
             errorEl.textContent = '❌ ' + (data.error || 'Error al guardar el libro');

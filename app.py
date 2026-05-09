@@ -230,15 +230,15 @@ def agregar_libro():
         autor = data.get("autor", "").strip()
         editorial = data.get("editorial", "").strip()
         capitulo = data.get("capitulo", "").strip()
-        stock = data.get("stock", 1)
+        stock = data.get("stock", 10)
         if not titulo or not autor or not editorial:
             return jsonify({"error": "Título, autor y editorial son obligatorios"}), 400
         try:
             stock = int(stock)
             if stock < 0:
-                stock = 1
+                stock = 10
         except (ValueError, TypeError):
-            stock = 1
+            stock = 10
         conn = get_db()
         c = conn.cursor()
         c.execute("""
@@ -283,6 +283,36 @@ def metricas():
         "reservas_pendientes": pendientes,
         "total_alumnos": total_alumnos
     })
+
+@app.route("/api/metricas", methods=["DELETE"])
+@bibliotecario_required
+def limpiar_metricas():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM metricas")
+        conn.commit()
+        c.close()
+        conn.close()
+        return jsonify({"mensaje": "Historial de consultas borrado correctamente"})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "Error al borrar el historial"}), 500
+
+@app.route("/api/reservas", methods=["DELETE"])
+@bibliotecario_required
+def limpiar_reservas():
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM reservas")
+        conn.commit()
+        c.close()
+        conn.close()
+        return jsonify({"mensaje": "Historial de reservas borrado correctamente"})
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": "Error al borrar el historial"}), 500
 
 @app.route("/api/libros/<int:libro_id>/stock", methods=["PUT"])
 @bibliotecario_required

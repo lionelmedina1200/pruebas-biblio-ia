@@ -179,6 +179,25 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
 .modal-agregar-footer { display: flex; gap: 0.8rem; margin-top: 1.2rem; justify-content: flex-end; }
 .btn-cancelar { padding: 10px 20px; background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); border-radius: 8px; cursor: pointer; font-weight: 500; transition: 0.2s; }
 .btn-cancelar:hover { border-color: var(--rojo); color: var(--rojo); }
+/* Sección header con botón papelera */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
+.section-header h2 { margin: 0; }
+.btn-trash { padding: 7px 14px; background: transparent; border: 1.5px solid #7f1d1d; color: #f87171; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 600; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
+.btn-trash:hover { background: #7f1d1d; color: #fff; }
+/* Sistema de capítulos dinámico */
+.capitulos-label-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; }
+.capitulos-label-row label { margin: 0; }
+.btn-add-cap { padding: 5px 12px; background: var(--azul-marino); border: 1.5px solid var(--azul-claro); color: var(--azul-claro); border-radius: 7px; cursor: pointer; font-size: 0.82rem; font-weight: 600; transition: 0.2s; }
+.btn-add-cap:hover { background: var(--azul-claro); color: #fff; }
+.capitulos-lista { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; padding-right: 2px; }
+.capitulos-lista::-webkit-scrollbar { width: 4px; }
+.capitulos-lista::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+.capitulo-row { display: flex; align-items: center; gap: 8px; animation: slideUp 0.15s ease; }
+.cap-num { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; min-width: 20px; text-align: right; flex-shrink: 0; }
+.cap-input { flex: 1; padding: 7px 10px; font-size: 0.88rem; }
+.btn-del-cap { padding: 5px 9px; background: transparent; border: 1px solid #7f1d1d; color: #f87171; border-radius: 6px; cursor: pointer; font-size: 0.78rem; transition: 0.2s; flex-shrink: 0; }
+.btn-del-cap:hover { background: #7f1d1d; color: #fff; }
+.capitulos-hint { color: var(--text-muted); font-size: 0.82rem; font-style: italic; margin: 6px 0 0; }
 .pagination { display: flex; justify-content: center; gap: 6px; padding: 1rem; flex-wrap: wrap; }
 .page-btn { padding: 8px 12px; border: 1.5px solid var(--border); background: var(--bg-card); color: var(--text-main); border-radius: 8px; cursor: pointer; transition: var(--transicion); font-weight: 600; min-height: 40px; min-width: 40px; display: flex; align-items: center; justify-content: center; }
 .page-btn:hover, .page-btn.active { background: var(--azul-marino); color: #fff; border-color: var(--azul-claro); transform: translateY(-2px); }

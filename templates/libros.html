@@ -37,12 +37,16 @@
                 <input type="text" id="nuevo-editorial" placeholder="Ej: Santillana" class="form-input">
             </div>
             <div class="form-group">
-                <label>Capítulo <span style="color:var(--text-muted);font-size:0.78rem">(opcional)</span></label>
-                <input type="text" id="nuevo-capitulo" placeholder="Ej: Cap. 3 - Genética" class="form-input">
+                <div class="capitulos-label-row">
+                    <label>Capítulos <span style="color:var(--text-muted);font-size:0.78rem">(opcional)</span></label>
+                    <button type="button" class="btn-add-cap" onclick="agregarCapituloInput()">＋ Agregar capítulo</button>
+                </div>
+                <div id="capitulos-lista" class="capitulos-lista"></div>
+                <p id="capitulos-vacio" class="capitulos-hint">Sin capítulos — tocá el botón para agregar</p>
             </div>
             <div class="form-group">
                 <label>Stock inicial</label>
-                <input type="number" id="nuevo-stock" value="1" min="1" class="form-input" style="max-width:100px">
+                <input type="number" id="nuevo-stock" value="10" min="1" class="form-input" style="max-width:100px">
             </div>
             <div id="agregar-error" class="error-msg" style="display:none;"></div>
             <div id="agregar-ok" class="success-msg" style="display:none;"></div>
