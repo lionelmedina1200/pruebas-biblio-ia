@@ -102,6 +102,14 @@ def init_db():
                      VALUES (%s, %s, %s, %s, %s)""",
                   ("biblio", hashed_pw, "Bibliotecaria", "biblio@biblioteca.com", "bibliotecario"))
 
+    c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = 'admin'")
+    count_admin = c.fetchone()[0]
+    if count_admin == 0:
+        hashed_pw_admin = generate_password_hash("admin2026", method='pbkdf2:sha256')
+        c.execute("""INSERT INTO usuarios (username, password, nombre, email, rol)
+                     VALUES (%s, %s, %s, %s, %s)""",
+                  ("admin", hashed_pw_admin, "Administrador", "admin@biblioteca.com", "admin"))
+
     conn.commit()
     c.close()
     conn.close()

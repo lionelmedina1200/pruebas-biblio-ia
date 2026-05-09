@@ -3,7 +3,7 @@ import traceback
 from flask import Flask, render_template, request, jsonify, session
 from database import init_db, get_db, verificar_usuario, registrar_usuario, fetchall_as_dicts, fetchone_as_dict
 from ai_engine import procesar_consulta
-from auth import login_required, bibliotecario_required
+from auth import login_required, bibliotecario_required, admin_required
 
 
 def registrar_log(conn_cursor, usuario_id, usuario_nombre, accion, tabla, registro_id, detalles):
@@ -547,78 +547,25 @@ def eliminar_libro(libro_id):
         return jsonify({"error": "Error al eliminar el libro"}), 500
 
 
-# ─────────────────────────────────────────────────────────────
-# SESIÓN ADMIN — logs de stock y reservas
-# ─────────────────────────────────────────────────────────────
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin2026")
-
-def admin_required(f):
-    from functools import wraps
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if not session.get("admin_logged_in"):
-            from flask import redirect
-            return redirect("/admin/login")
-        return f(*args, **kwargs)
-    return decorated
-
-@app.route("/admin/login", methods=["GET", "POST"])
-def admin_login():
-    from flask import request as req
-    error = ""
-    if req.method == "POST":
-        pw = req.form.get("password", "")
-        if pw == ADMIN_PASSWORD:
-            session["admin_logged_in"] = True
-            return app.redirect("/admin/logs")
-        error = "Contraseña incorrecta"
-    return f"""<!DOCTYPE html>
-<html lang="es"><head><meta charset="UTF-8"><title>Admin Login</title>
-<link rel="stylesheet" href="/static/css/style.css">
-<style>body{{display:flex;align-items:center;justify-content:center;min-height:100vh;}}
-.login-box{{background:var(--bg-card);padding:2.5rem;border-radius:var(--radius);border:1px solid var(--border);max-width:360px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.5);}}
-h2{{color:var(--azul-claro);margin-bottom:1.5rem;text-align:center;}}
-.err{{color:#f87171;margin-bottom:1rem;text-align:center;font-weight:600;}}
-</style></head><body>
-<div class="login-box">
-  <h2>🔐 Acceso Admin</h2>
-  {"<p class='err'>⚠️ " + error + "</p>" if error else ""}
-  <form method="POST">
-    <div class="form-group">
-      <label>Contraseña de administrador</label>
-      <input type="password" name="password" class="form-input" autofocus placeholder="Contraseña admin">
-    </div>
-    <button type="submit" class="btn-primary" style="width:100%;margin-top:.5rem;">Ingresar</button>
-  </form>
-  <p style="text-align:center;margin-top:1rem;"><a href="/" style="color:var(--text-muted);font-size:.85rem;">← Volver al inicio</a></p>
-</div></body></html>"""
-
-@app.route("/admin/logout")
-def admin_logout():
-    session.pop("admin_logged_in", None)
-    from flask import redirect
-    return redirect("/admin/login")
-
-@app.route("/admin/logs")
+@app.route("/logs")
 @admin_required
 def admin_logs():
     return render_template("admin_logs.html")
 
 @app.route("/api/admin/logs")
+@admin_required
 def api_admin_logs():
-    if not session.get("admin_logged_in"):
-        return jsonify({"error": "No autorizado"}), 401
     try:
         conn = get_db()
         c = conn.cursor()
-        # Intentar leer tabla logs_actividad
         try:
             c.execute("""SELECT id, timestamp, usuario_nombre, accion, tabla_afectada, registro_id, detalles
                          FROM logs_actividad ORDER BY timestamp DESC LIMIT 200""")
             logs = fetchall_as_dicts(c)
         except Exception:
             logs = []
-        c.close(); conn.close()
+        c.close()
+        conn.close()
         return jsonify(logs)
     except Exception as e:
         traceback.print_exc()

@@ -3,13 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin — Logs de Actividad</title>
+    <title>Logs de Actividad - Biblioteca IA</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
-        .admin-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-        .admin-header h2 { margin: 0; }
-        .log-filters { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.2rem; }
-        .log-filters input, .log-filters select { padding: 8px 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-heading); font-size: 0.9rem; }
         .badge-accion { padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
         .badge-stock  { background: #1e3a5f; color: #60a5fa; }
         .badge-reserva-prestada { background: #14532d; color: #4ade80; }
@@ -21,35 +17,32 @@
         .stat-card .num { font-size: 1.8rem; font-weight: 800; color: var(--azul-claro); }
         .stat-card .lbl { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; }
         .empty-logs { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.95rem; }
-        .table-wrapper { overflow-x: auto; }
+        .log-filters { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.2rem; }
+        .log-filters input, .log-filters select { padding: 8px 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-heading); font-size: 0.9rem; }
         .log-detalles { max-width: 280px; font-size: 0.82rem; color: var(--text-muted); word-break: break-word; }
-        .btn-logout-admin { padding: 8px 16px; background: transparent; border: 1.5px solid #7f1d1d; color: #f87171; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; text-decoration: none; transition: 0.2s; }
-        .btn-logout-admin:hover { background: #7f1d1d; color: #fff; }
+        .table-wrapper { overflow-x: auto; }
+        .logs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .logs-header h2 { margin: 0; }
         .refresh-btn { padding: 8px 16px; background: var(--azul-marino); border: 1.5px solid var(--azul-claro); color: var(--azul-claro); border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
         .refresh-btn:hover { background: var(--azul-claro); color: #fff; }
     </style>
 </head>
 <body>
     <header class="header">
-        <div class="logo"><span class="logo-icon">🔐</span><h1>Admin — Biblioteca IA</h1></div>
+        <div class="logo"><span class="logo-icon">📚</span><h1>Biblioteca IA</h1></div>
         <nav class="header-nav">
             <a href="/" class="nav-link">Inicio</a>
-            <a href="/libros" class="nav-link">Gestión Libros</a>
-            <a href="/dashboard" class="nav-link">Dashboard</a>
-            <a href="/admin/logs" class="nav-link active">Logs</a>
+            <a href="/logs" class="nav-link active">📋 Logs</a>
         </nav>
-        <div style="display:flex;gap:0.7rem;align-items:center;">
-            <a href="/admin/logout" class="btn-logout-admin">🚪 Salir</a>
-        </div>
+        <div id="user-menu"></div>
     </header>
 
     <main class="admin-main">
-        <div class="admin-header">
+        <div class="logs-header">
             <h2>📋 Registro de Actividades</h2>
             <button class="refresh-btn" onclick="loadLogs()">🔄 Actualizar</button>
         </div>
 
-        <!-- Estadísticas rápidas -->
         <div class="stats-row" id="stats-row">
             <div class="stat-card"><div class="num" id="stat-total">—</div><div class="lbl">Total eventos</div></div>
             <div class="stat-card"><div class="num" id="stat-stock">—</div><div class="lbl">Cambios de stock</div></div>
@@ -58,7 +51,6 @@
             <div class="stat-card"><div class="num" id="stat-eliminados">—</div><div class="lbl">Libros eliminados</div></div>
         </div>
 
-        <!-- Filtros -->
         <div class="log-filters">
             <input type="text" id="filtro-texto" placeholder="🔍 Buscar en detalles..." oninput="filtrarLogs()">
             <select id="filtro-accion" onchange="filtrarLogs()">
@@ -91,6 +83,7 @@
         </div>
     </main>
 
+    <script src="/static/js/auth.js"></script>
     <script>
         let allLogs = [];
 
@@ -107,7 +100,7 @@
         function renderLogs(logs) {
             const tbody = document.getElementById('logs-tbody');
             if (!logs.length) {
-                tbody.innerHTML = '<tr><td colspan="6" class="empty-logs">📭 No hay eventos registrados aún.<br><small>Los logs aparecen cuando la bibliotecaria actualiza stock, presta o devuelve libros.</small></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-logs">📭 No hay eventos registrados aún.<br><small>Los logs aparecen cuando se actualiza stock, presta o devuelve libros.</small></td></tr>';
                 return;
             }
             tbody.innerHTML = logs.map(log => `
@@ -143,9 +136,9 @@
 
         async function loadLogs() {
             try {
-                const res = await fetch('/api/admin/logs');
-                if (res.status === 401) {
-                    window.location.href = '/admin/login';
+                const res = await fetch('/api/admin/logs', { credentials: 'include' });
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = '/';
                     return;
                 }
                 const data = await res.json();
@@ -154,15 +147,14 @@
                     actualizarStats(data);
                     filtrarLogs();
                 } else {
-                    document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="6" class="empty-logs">⚠️ Error al cargar logs: ' + (data.error || 'desconocido') + '</td></tr>';
+                    document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="6" class="empty-logs">⚠️ Error: ' + (data.error || 'desconocido') + '</td></tr>';
                 }
             } catch (err) {
-                document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="6" class="empty-logs">❌ Error de conexión al cargar los logs.</td></tr>';
+                document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="6" class="empty-logs">❌ Error de conexión.</td></tr>';
             }
         }
 
         loadLogs();
-        // Auto-refresh cada 30 segundos
         setInterval(loadLogs, 30000);
     </script>
 </body>
