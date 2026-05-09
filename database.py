@@ -83,6 +83,17 @@ def init_db():
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
+    c.execute("""CREATE TABLE IF NOT EXISTS logs_actividad (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        usuario_id INTEGER,
+        usuario_nombre TEXT,
+        accion TEXT NOT NULL,
+        tabla_afectada TEXT,
+        registro_id INTEGER,
+        detalles TEXT
+    )""")
+
     c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = 'bibliotecario'")
     count = c.fetchone()[0]
     if count == 0:

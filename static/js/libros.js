@@ -30,17 +30,28 @@ async function loadLibros(page = 1) {
                 </td>
                 <td>
                     <span class="badge ${l.disponible > 0 ? 'disponible' : 'no-disponible'}">
-                        ${l.disponible > 0 ? `✅ ${l.disponible} en stock` : '❌ Sin stock'}
+                        ${l.disponible > 0 ? '✅ ' + l.disponible + ' en stock' : '❌ Sin stock'}
                     </span>
                 </td>
                 <td>
-                    <button class="btn-toggle" onclick="toggleDisp(${l.id}, ${l.disponible})">
-                        ${l.disponible > 0 ? '➖ Marcar Prestado' : '➕ Marcar Devuelto'}
-                    </button>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                        <button class="btn-toggle" onclick="toggleDisp(${l.id}, ${l.disponible})">
+                            ${l.disponible > 0 ? '➖ Marcar Prestado' : '➕ Marcar Devuelto'}
+                        </button>
+                        <button class="btn-eliminar-libro" onclick="eliminarLibro(${l.id}, this)">
+                            🗑️ Eliminar
+                        </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
         
+        // guardar titulos en data attribute para el botón eliminar
+        data.libros.forEach(l => {
+            const btn = document.querySelector(`.btn-eliminar-libro[onclick*="eliminarLibro(${l.id},"]`);
+            if (btn) btn.setAttribute('data-titulo', l.titulo);
+        });
+
         renderPagination(data.total_pages, page);
     } catch (err) {
         console.error("Error cargando libros:", err);
@@ -66,9 +77,6 @@ function renderPagination(totalPages, current) {
 }
 
 async function toggleDisp(id, actual) {
-    // actual = stock actual del libro
-    // Si hay stock > 0, descontamos 1 (marcar prestado)
-    // Si stock = 0, sumamos 1 (marcar disponible / devuelto)
     const nuevoStock = actual > 0 ? actual - 1 : actual + 1;
     try {
         const res = await fetch(`/api/libros/${id}/stock`, {
@@ -84,6 +92,26 @@ async function toggleDisp(id, actual) {
         }
     } catch (err) {
         alert('Error de conexión al actualizar el estado');
+    }
+}
+
+// ── Eliminar libro ───────────────────────────────────────────
+async function eliminarLibro(id, btn) {
+    const titulo = btn.getAttribute('data-titulo') || 'este libro';
+    if (!confirm('¿Estás segura de que querés eliminar "' + titulo + '"?\nEsta acción no se puede deshacer.')) return;
+    try {
+        const res = await fetch('/api/libros/' + id, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            loadLibros(currentPage);
+        } else {
+            alert('Error: ' + (data.error || 'No se pudo eliminar el libro'));
+        }
+    } catch (err) {
+        alert('Error de conexión al eliminar el libro');
     }
 }
 
@@ -103,7 +131,7 @@ function cerrarModalAgregar() {
         document.getElementById(id).value = '';
     });
     document.getElementById('nuevo-stock').value = '10';
-    // Limpiar capítulos
+    // Limpiar capítulos y resetear contador
     document.getElementById('capitulos-lista').innerHTML = '';
     document.getElementById('capitulos-vacio').style.display = 'block';
     capitulosCount = 0;
@@ -115,32 +143,27 @@ function agregarCapituloInput() {
     document.getElementById('capitulos-vacio').style.display = 'none';
     const row = document.createElement('div');
     row.className = 'capitulo-row';
-    row.id = `cap-row-${capitulosCount}`;
+    row.id = 'cap-row-' + capitulosCount;
     const idx = capitulosCount;
-    row.innerHTML = `
-        <span class="cap-num">${idx}.</span>
-        <input type="text"
-               id="cap-${idx}"
-               class="form-input cap-input"
-               placeholder="Ej: Introducción a la biología"
-               onkeydown="capKeydown(event, ${idx})">
-        <button type="button" class="btn-del-cap" onclick="eliminarCapitulo(${idx})" title="Eliminar">✕</button>
-    `;
+    row.innerHTML =
+        '<span class="cap-num">' + idx + '.</span>' +
+        '<input type="text" id="cap-' + idx + '" class="form-input cap-input" placeholder="Ej: Introducción a la biología" onkeydown="capKeydown(event,' + idx + ')">' +
+        '<button type="button" class="btn-del-cap" onclick="eliminarCapitulo(' + idx + ')" title="Eliminar">✕</button>';
     lista.appendChild(row);
-    document.getElementById(`cap-${idx}`).focus();
+    document.getElementById('cap-' + idx).focus();
 }
 
 function eliminarCapitulo(idx) {
-    const row = document.getElementById(`cap-row-${idx}`);
+    const row = document.getElementById('cap-row-' + idx);
     if (row) row.remove();
-    // Si no quedan capítulos, mostrar hint
+    // Si no quedan capítulos, mostrar hint y RESETEAR contador al 0
     if (document.querySelectorAll('.capitulo-row').length === 0) {
         document.getElementById('capitulos-vacio').style.display = 'block';
+        capitulosCount = 0; // FIX: la próxima vez arranca desde 1
     }
 }
 
 function capKeydown(event, idx) {
-    // Enter en un campo de capítulo agrega el siguiente
     if (event.key === 'Enter') {
         event.preventDefault();
         agregarCapituloInput();
@@ -161,7 +184,7 @@ async function guardarLibro() {
     const titulo    = document.getElementById('nuevo-titulo').value.trim();
     const autor     = document.getElementById('nuevo-autor').value.trim();
     const editorial = document.getElementById('nuevo-editorial').value.trim();
-    const capitulos = obtenerCapitulos(); // array de strings
+    const capitulos = obtenerCapitulos();
     const stock     = parseInt(document.getElementById('nuevo-stock').value) || 10;
     const errorEl   = document.getElementById('agregar-error');
     const okEl      = document.getElementById('agregar-ok');
@@ -175,7 +198,6 @@ async function guardarLibro() {
         return;
     }
 
-    // Enviar capítulos como string separado por "||" (el backend lo almacena en el campo capitulo)
     const capituloStr = capitulos.join(' || ');
 
     try {
@@ -207,12 +229,12 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') cerrarModalAgregar();
 });
 
-// ── Event Listeners con debounce para búsqueda más rápida ────
+// ── Event Listeners con debounce ─────────────────────────────
 let searchDebounce = null;
 if (document.getElementById('admin-search')) {
     document.getElementById('admin-search').addEventListener('input', () => {
         clearTimeout(searchDebounce);
-        searchDebounce = setTimeout(() => loadLibros(1), 350); // espera 350ms antes de buscar
+        searchDebounce = setTimeout(() => loadLibros(1), 350);
     });
 }
 
@@ -228,11 +250,11 @@ if (document.getElementById('admin-tbody')) {
 }
 
 async function actualizarStock(libroId) {
-    const input = document.querySelector(`.stock-input[data-libro-id="${libroId}"]`);
+    const input = document.querySelector('.stock-input[data-libro-id="' + libroId + '"]');
     const cantidad = input.value;
     
     try {
-        const response = await fetch(`/api/libros/${libroId}/stock`, {
+        const response = await fetch('/api/libros/' + libroId + '/stock', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cantidad: cantidad })

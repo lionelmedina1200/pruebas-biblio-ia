@@ -15,6 +15,7 @@
             <a href="/dashboard" class="nav-link">Dashboard</a>
             <a href="/registro" class="nav-link">Registrar Alumno</a>
             <a href="/libros" class="nav-link active">Libros</a>
+            <a href="/admin/logs" class="nav-link">🔐 Admin Logs</a>
         </nav>
         <div id="user-menu"></div>
     </header>
@@ -22,34 +23,38 @@
     <!-- MODAL AGREGAR LIBRO -->
     <div id="modal-agregar" class="modal-agregar">
         <div class="modal-agregar-content">
-            <span class="close-modal" onclick="cerrarModalAgregar()">&times;</span>
-            <h3>📖 Agregar Libro Manualmente</h3>
-            <div class="form-group">
-                <label>Título <span class="campo-requerido">*</span></label>
-                <input type="text" id="nuevo-titulo" placeholder="Ej: Biología Molecular" class="form-input">
-            </div>
-            <div class="form-group">
-                <label>Autor <span class="campo-requerido">*</span></label>
-                <input type="text" id="nuevo-autor" placeholder="Ej: Bruce Alberts" class="form-input">
-            </div>
-            <div class="form-group">
-                <label>Editorial <span class="campo-requerido">*</span></label>
-                <input type="text" id="nuevo-editorial" placeholder="Ej: Santillana" class="form-input">
-            </div>
-            <div class="form-group">
-                <div class="capitulos-label-row">
-                    <label>Capítulos <span style="color:var(--text-muted);font-size:0.78rem">(opcional)</span></label>
-                    <button type="button" class="btn-add-cap" onclick="agregarCapituloInput()">＋ Agregar capítulo</button>
+            <span class="close-modal" onclick="cerrarModalAgregar()" style="position:absolute;top:1rem;right:1.2rem;font-size:1.5rem;cursor:pointer;color:var(--text-muted);">&times;</span>
+            <!-- Cuerpo scrollable -->
+            <div class="modal-agregar-body">
+                <h3>📖 Agregar Libro Manualmente</h3>
+                <div class="form-group">
+                    <label>Título <span class="campo-requerido">*</span></label>
+                    <input type="text" id="nuevo-titulo" placeholder="Ej: Biología Molecular" class="form-input">
                 </div>
-                <div id="capitulos-lista" class="capitulos-lista"></div>
-                <p id="capitulos-vacio" class="capitulos-hint">Sin capítulos — tocá el botón para agregar</p>
+                <div class="form-group">
+                    <label>Autor <span class="campo-requerido">*</span></label>
+                    <input type="text" id="nuevo-autor" placeholder="Ej: Bruce Alberts" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Editorial <span class="campo-requerido">*</span></label>
+                    <input type="text" id="nuevo-editorial" placeholder="Ej: Santillana" class="form-input">
+                </div>
+                <div class="form-group">
+                    <div class="capitulos-label-row">
+                        <label>Capítulos <span style="color:var(--text-muted);font-size:0.78rem">(opcional)</span></label>
+                        <button type="button" class="btn-add-cap" onclick="agregarCapituloInput()">＋ Agregar capítulo</button>
+                    </div>
+                    <div id="capitulos-lista" class="capitulos-lista"></div>
+                    <p id="capitulos-vacio" class="capitulos-hint">Sin capítulos — tocá el botón para agregar</p>
+                </div>
+                <div class="form-group">
+                    <label>Stock inicial</label>
+                    <input type="number" id="nuevo-stock" value="10" min="1" class="form-input" style="max-width:100px">
+                </div>
+                <div id="agregar-error" class="error-msg" style="display:none;"></div>
+                <div id="agregar-ok" class="success-msg" style="display:none;"></div>
             </div>
-            <div class="form-group">
-                <label>Stock inicial</label>
-                <input type="number" id="nuevo-stock" value="10" min="1" class="form-input" style="max-width:100px">
-            </div>
-            <div id="agregar-error" class="error-msg" style="display:none;"></div>
-            <div id="agregar-ok" class="success-msg" style="display:none;"></div>
+            <!-- Footer fijo -->
             <div class="modal-agregar-footer">
                 <button class="btn-cancelar" onclick="cerrarModalAgregar()">Cancelar</button>
                 <button class="btn-primary" onclick="guardarLibro()">💾 Guardar Libro</button>
@@ -77,7 +82,7 @@
                         <th>Editorial</th>
                         <th>Stock</th>
                         <th>Estado</th>
-                        <th>Acción</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="admin-tbody"></tbody>

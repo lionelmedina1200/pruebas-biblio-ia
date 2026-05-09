@@ -173,10 +173,13 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
 /* Modal agregar libro */
 .modal-agregar { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(2,6,23,0.8); backdrop-filter: blur(4px); padding: 1rem; animation: fadeIn 0.2s; }
 .modal-agregar.open { display: flex; align-items: center; justify-content: center; }
-.modal-agregar-content { background: var(--bg-card); border-radius: var(--radius); width: 100%; max-width: 480px; padding: 2rem; box-shadow: 0 12px 40px rgba(0,0,0,0.5); border: 1px solid var(--border); position: relative; }
+.modal-agregar-content { background: var(--bg-card); border-radius: var(--radius); width: 100%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,0.5); border: 1px solid var(--border); position: relative; }
+.modal-agregar-body { padding: 2rem; overflow-y: auto; flex: 1; }
 .modal-agregar-content h3 { color: var(--azul-claro); margin-bottom: 1.2rem; font-size: 1.2rem; }
 .campo-requerido { color: #f87171; font-size: 0.75rem; margin-left: 4px; }
-.modal-agregar-footer { display: flex; gap: 0.8rem; margin-top: 1.2rem; justify-content: flex-end; }
+.modal-agregar-footer { display: flex; gap: 0.8rem; padding: 1rem 2rem; justify-content: flex-end; border-top: 1px solid var(--border); background: var(--bg-card); border-radius: 0 0 var(--radius) var(--radius); flex-shrink: 0; }
+.btn-eliminar-libro { padding: 7px 12px; background: transparent; border: 1.5px solid #7f1d1d; color: #f87171; border-radius: 8px; cursor: pointer; font-size: 0.82rem; font-weight: 600; transition: 0.2s; white-space: nowrap; }
+.btn-eliminar-libro:hover { background: #7f1d1d; color: #fff; }
 .btn-cancelar { padding: 10px 20px; background: transparent; border: 1.5px solid var(--border); color: var(--text-muted); border-radius: 8px; cursor: pointer; font-weight: 500; transition: 0.2s; }
 .btn-cancelar:hover { border-color: var(--rojo); color: var(--rojo); }
 /* Sección header con botón papelera */
