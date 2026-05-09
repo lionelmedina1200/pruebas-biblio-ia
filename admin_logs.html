@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs de Actividad - Biblioteca IA</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .badge-accion { padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+        .badge-stock  { background: #1e3a5f; color: #60a5fa; }
+        .badge-reserva-prestada { background: #14532d; color: #4ade80; }
+        .badge-reserva-devuelta { background: #422006; color: #fbbf24; }
+        .badge-eliminar { background: #450a0a; color: #fca5a5; }
+        .badge-default  { background: #1e293b; color: #94a3b8; }
+        .stats-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+        .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.5rem; flex: 1; min-width: 140px; text-align: center; }
+        .stat-card .num { font-size: 1.8rem; font-weight: 800; color: var(--azul-claro); }
+        .stat-card .lbl { font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem; }
+        .empty-logs { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.95rem; }
+        .log-filters { display: flex; gap: 0.7rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.2rem; }
+        .log-filters input, .log-filters select { padding: 8px 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-heading); font-size: 0.9rem; }
+        .log-detalles { max-width: 280px; font-size: 0.82rem; color: var(--text-muted); word-break: break-word; }
+        .table-wrapper { overflow-x: auto; }
+        .logs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+        .logs-header h2 { margin: 0; }
+        .refresh-btn { padding: 8px 16px; background: var(--azul-marino); border: 1.5px solid var(--azul-claro); color: var(--azul-claro); border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: 0.2s; }
+        .refresh-btn:hover { background: var(--azul-claro); color: #fff; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo"><span class="logo-icon">📚</span><h1>Biblioteca IA</h1></div>
+        <nav class="header-nav">
+            <a href="/logs" class="nav-link active">📋 Logs</a>
+        </nav>
+        <div id="user-menu"></div>
+    </header>
+
+    <main class="admin-main">
+        <div class="logs-header">
+            <h2>📋 Registro de Actividades</h2>
+            <button class="refresh-btn" onclick="loadLogs()">🔄 Actualizar</button>
+        </div>
+
+        <div class="stats-row" id="stats-row">
+            <div class="stat-card"><div class="num" id="stat-total">—</div><div class="lbl">Total eventos</div></div>
+            <div class="stat-card"><div class="num" id="stat-stock">—</div><div class="lbl">Cambios de stock</div></div>
+            <div class="stat-card"><div class="num" id="stat-prestadas">—</div><div class="lbl">Reservas prestadas</div></div>
+            <div class="stat-card"><div class="num" id="stat-devueltas">—</div><div class="lbl">Reservas devueltas</div></div>
+            <div class="stat-card"><div class="num" id="stat-eliminados">—</div><div class="lbl">Libros eliminados</div></div>
+        </div>
+
+        <div class="log-filters">
+            <input type="text" id="filtro-texto" placeholder="🔍 Buscar en detalles..." oninput="filtrarLogs()">
+            <select id="filtro-accion" onchange="filtrarLogs()">
+                <option value="">Todas las acciones</option>
+                <option value="stock">Cambios de stock</option>
+                <option value="prestada">Reservas prestadas</option>
+                <option value="devuelta">Reservas devueltas</option>
+                <option value="eliminar">Libros eliminados</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha y hora</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Tabla</th>
+                            <th>ID Reg.</th>
+                            <th>Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-tbody">
+                        <tr><td colspan="6" class="empty-logs">Cargando logs...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+        let allLogs = [];
+
+        function badgeClass(accion) {
+            if (!accion) return 'badge-default';
+            const a = accion.toLowerCase();
+            if (a.includes('stock')) return 'badge-stock';
+            if (a.includes('prestada') || a.includes('prestado')) return 'badge-reserva-prestada';
+            if (a.includes('devuelta') || a.includes('devuelto')) return 'badge-reserva-devuelta';
+            if (a.includes('eliminar')) return 'badge-eliminar';
+            return 'badge-default';
+        }
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logs-tbody');
+            if (!logs.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty-logs">📭 No hay eventos registrados aún.<br><small>Los logs aparecen cuando se actualiza stock, presta o devuelve libros.</small></td></tr>';
+                return;
+            }
+            tbody.innerHTML = logs.map(log => `
+                <tr>
+                    <td style="white-space:nowrap;font-size:0.85rem;">${new Date(log.timestamp).toLocaleString('es-AR')}</td>
+                    <td><strong>${log.usuario_nombre || '—'}</strong></td>
+                    <td><span class="badge-accion ${badgeClass(log.accion)}">${log.accion}</span></td>
+                    <td style="font-size:0.85rem;color:var(--text-muted);">${log.tabla_afectada || '—'}</td>
+                    <td style="text-align:center;">${log.registro_id || '—'}</td>
+                    <td class="log-detalles">${log.detalles || '—'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function actualizarStats(logs) {
+            document.getElementById('stat-total').textContent = logs.length;
+            document.getElementById('stat-stock').textContent = logs.filter(l => l.accion && l.accion.toLowerCase().includes('stock')).length;
+            document.getElementById('stat-prestadas').textContent = logs.filter(l => l.accion && (l.accion.toLowerCase().includes('prestada') || l.accion.toLowerCase().includes('prestado'))).length;
+            document.getElementById('stat-devueltas').textContent = logs.filter(l => l.accion && (l.accion.toLowerCase().includes('devuelta') || l.accion.toLowerCase().includes('devuelto'))).length;
+            document.getElementById('stat-eliminados').textContent = logs.filter(l => l.accion && l.accion.toLowerCase().includes('eliminar')).length;
+        }
+
+        function filtrarLogs() {
+            const texto = document.getElementById('filtro-texto').value.toLowerCase();
+            const accion = document.getElementById('filtro-accion').value.toLowerCase();
+            const filtered = allLogs.filter(log => {
+                const matchTexto = !texto || (log.detalles && log.detalles.toLowerCase().includes(texto)) || (log.usuario_nombre && log.usuario_nombre.toLowerCase().includes(texto));
+                const matchAccion = !accion || (log.accion && log.accion.toLowerCase().includes(accion));
+                return matchTexto && matchAccion;
+            });
+            renderLogs(filtered);
+        }
+
+        async function loadLogs() {
+            try {
+                const res = await fetch('/api/admin/logs', { credentials: 'include' });
+                if (res.status === 401 || res.status === 403) {
+                    window.location.href = '/';
+                    return;
+                }
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    allLogs = data;
+                    actualizarStats(data);
+                    filtrarLogs();
+                } else {
+                    document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="6" class="empty-logs">⚠️ Error: ' + (data.error || 'desconocido') + '</td></tr>';
+                }
+            } catch (err) {
+                document.getElementById('logs-tbody').innerHTML = '<tr><td colspan="6" class="empty-logs">❌ Error de conexión.</td></tr>';
+            }
+        }
+
+        loadLogs();
+        setInterval(loadLogs, 30000);
+    </script>
+</body>
+</html>

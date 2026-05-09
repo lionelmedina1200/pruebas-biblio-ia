@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check-in - Biblioteca IA</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="header">
+        <div class="logo"><span class="logo-icon">📚</span><h1>Check-in</h1></div>
+        <nav class="header-nav">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link active">Check-in</a>
+            <a href="/catalogo" class="nav-link" id="nav-catalogo" style="display:none;">Catálogo</a>
+            <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
+            <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+        </nav>
+        <div id="user-menu"></div>
+    </header>
+
+    <!-- MODAL DE POLÍTICAS DE PRÉSTAMOS -->
+    <div id="modal-politicas" class="modal-politicas">
+        <div class="modal-politicas-content">
+            <div class="modal-header">
+                <h2>📋 Reglamento de la Biblioteca</h2>
+                <p class="modal-subtitle">Políticas de Préstamos y Normas de Uso</p>
+            </div>
+            
+            <div class="modal-body-scroll">
+                <h3>📖 PRÉSTAMOS AL AULA Y SALA DE LECTURA</h3>
+                <ul>
+                    <li>Pueden consultar el fondo bibliográfico de la biblioteca los alumnos y todo el personal de la escuela.</li>
+                    <li>Los materiales que se solicitan para trabajar en el aula se asientan en el cuaderno de préstamos diarios y <strong>deben ser devueltos el mismo día</strong>.</li>
+                    <li>Guardar silencio en la sala de lectura para que los alumnos puedan realizar sus tareas, estudiar y leer.</li>
+                    <li>Comer fuera de la biblioteca y cuidar de la limpieza del lugar.</li>
+                    <li>Los egresados de la escuela pueden consultar los materiales de la biblioteca y usar la sala de lectura con autorización de la Dirección.</li>
+                </ul>
+
+                <h3>🏠 PRÉSTAMO DOMICILIARIO</h3>
+                <ul>
+                    <li>Pueden hacer uso del préstamo domiciliario los alumnos y todo el personal de la escuela.</li>
+                    <li>Para tener este servicio es necesario asociarse a la biblioteca mediante una planilla confeccionada para tal fin.</li>
+                    <li>En el momento de asociarse se pedirá la donación de un libro o un material en distinto soporte, para incorporar a la colección de la biblioteca. La donación no es requisito excluyente para tener este servicio.</li>
+                    <li><strong>Los libros de textos se prestan por 3 días</strong>, la Literatura de género y revistas por <strong>7 días</strong>; en el caso que los lectores necesiten tener el material por más tiempo lo hacen saber a las bibliotecarias.</li>
+                    <li>Los materiales de Referencia como los Diccionarios, Enciclopedias, Atlas, Tomos, Volúmenes de obras completas y libros de único ejemplar, <strong>no pueden prestarse a domicilio</strong>.</li>
+                </ul>
+
+                <h3>↩️ DEVOLUCIÓN DE LOS PRÉSTAMOS</h3>
+                <ul>
+                    <li>Los materiales tienen que ser devueltos en el tiempo establecido y en perfectas condiciones de uso.</li>
+                    <li>En el caso de pérdida, roturas o deterioro se deberá reponer por otro ejemplar idéntico o por un título sugerido por la biblioteca.</li>
+                    <li>En el Acuerdo Institucional de Convivencia de la escuela se menciona la responsabilidad en cuanto al uso de los materiales de la biblioteca.</li>
+                </ul>
+
+                <div class="notice-box">
+                    <strong>⚠️ IMPORTANTE:</strong> Cuando los alumnos pidan pase a otra escuela, se debe avisar a la Biblioteca para que se tome conocimiento y se puedan pedir los libros en caso de que tuvieran en préstamo.
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="btn-aceptar-politicas" class="btn-primary">✅ He leído y acepto las políticas de préstamos</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENIDO DEL CHECK-IN (oculto hasta aceptar) -->
+    <main class="checkin-main" id="checkin-content" style="display:none;">
+        <div class="checkin-card">
+            <h2>📝 Reserva tu libro</h2>
+            <p>Completa el formulario para reservar antes de llegar a la biblioteca.</p>
+            <form id="checkin-form">
+                <div class="form-group"><label>Nombre completo</label><input type="text" id="nombre" required placeholder="Tu nombre"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="email" required placeholder="tu@email.com"></div>
+                <div class="form-group"><label>Libro (opcional)</label><select id="libro-select"><option value="">-- Reserva general --</option></select></div>
+                <button type="submit" class="btn-primary">Confirmar Reserva</button>
+            </form>
+            <div id="checkin-success" class="success-msg" style="display:none;">✅ ¡Reserva creada!</div>
+            <div id="checkin-error" class="error-msg" style="display:none;"></div>
+        </div>
+    </main>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content login-content">
+            <span class="close-modal" id="close-login">&times;</span>
+            <h2>🔐 Iniciar Sesión</h2>
+            <form id="login-form">
+                <div class="form-group"><label>Usuario</label><input type="text" id="login-username" required placeholder="Tu usuario"></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" required placeholder="Tu contraseña"></div>
+                <button type="submit" class="btn-primary">Ingresar</button>
+            </form>
+            <div id="login-error" class="error-msg" style="display:none;"></div>
+        </div>
+    </div>
+    
+    <script src="/static/js/auth.js"></script>
+    <script>
+        /*
+         * POLÍTICAS DE PRÉSTAMO
+         * Cada usuario tiene su propia clave en localStorage: politicas_v2_{username}_{id}
+         * Esto garantiza que cada cuenta tenga que aceptar el reglamento por separado,
+         * sin importar si otro usuario ya lo aceptó en el mismo navegador.
+         * Los usuarios guest (sin login) SIEMPRE ven el modal.
+         */
+        async function initPoliticas() {
+            let storageKey = null; // null = sin login → siempre mostrar modal
+
+            try {
+                const res = await fetch('/api/session', { credentials: 'include' });
+                const data = await res.json();
+                if (data.logged_in && data.usuario) {
+                    // Clave única por usuario: combina username + id para evitar colisiones
+                    storageKey = `politicas_v2_${data.usuario.username}_${data.usuario.id}`;
+                }
+            } catch (err) { /* si falla la red, se trata como guest: siempre muestra modal */ }
+
+            const modal = document.getElementById('modal-politicas');
+            const content = document.getElementById('checkin-content');
+
+            // Solo saltear el modal si el usuario está logueado Y ya aceptó en ESTE dispositivo
+            if (storageKey && localStorage.getItem(storageKey) === 'true') {
+                modal.style.display = 'none';
+                content.style.display = 'block';
+            }
+            // En cualquier otro caso (guest o usuario que nunca aceptó) → el modal queda visible
+
+            // Botón aceptar políticas
+            document.getElementById('btn-aceptar-politicas').addEventListener('click', function() {
+                if (storageKey) {
+                    // Guardar aceptación SOLO para este usuario específico
+                    localStorage.setItem(storageKey, 'true');
+                }
+                modal.style.display = 'none';
+                content.style.display = 'block';
+            });
+        }
+
+        initPoliticas();
+
+        // Pre-cargar nombre y email del usuario logueado
+        async function preCargarUsuario() {
+            try {
+                const res = await fetch('/api/session', { credentials: 'include' });
+                const data = await res.json();
+                if (data.logged_in && data.usuario) {
+                    document.getElementById('nombre').value = data.usuario.nombre || '';
+                    document.getElementById('email').value = data.usuario.email || '';
+                }
+            } catch (err) {
+                // Si falla silenciosamente, el usuario completa el formulario a mano
+            }
+        }
+
+        // Cargar libros para el select
+        async function loadLibros() {
+            const res = await fetch('/api/libros?per_page=100', { credentials: 'include' });
+            const data = await res.json();
+            const select = document.getElementById('libro-select');
+            data.libros.forEach(l => { 
+                const o = document.createElement('option'); 
+                o.value = l.id; 
+                o.textContent = `${l.titulo} - ${l.autor}`; 
+                select.appendChild(o); 
+            });
+        }
+
+        // Formulario de reserva
+        document.getElementById('checkin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const successEl = document.getElementById('checkin-success');
+            const errorEl = document.getElementById('checkin-error');
+            successEl.style.display = 'none';
+            errorEl.style.display = 'none';
+
+            const body = { 
+                nombre: document.getElementById('nombre').value, 
+                email: document.getElementById('email').value, 
+                libro_id: document.getElementById('libro-select').value || null 
+            };
+
+            try {
+                const res = await fetch('/api/reservas', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'},
+                    credentials: 'include',
+                    body: JSON.stringify(body) 
+                });
+
+                if (res.ok) { 
+                    successEl.style.display = 'block'; 
+                    document.getElementById('checkin-form').reset();
+                    preCargarUsuario();
+                } else {
+                    const data = await res.json();
+                    errorEl.textContent = data.error || 'Error al crear la reserva.';
+                    errorEl.style.display = 'block';
+                }
+            } catch (err) {
+                errorEl.textContent = 'Error de conexión. Intentá de nuevo.';
+                errorEl.style.display = 'block';
+            }
+        });
+
+        preCargarUsuario();
+        loadLibros();
+    </script>
+</body>
+</html>

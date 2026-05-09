@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca IA</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="welcome-modal" class="welcome-modal">
+        <div class="welcome-content">
+            <div class="welcome-icon">📚</div>
+            <h2>¡Bienvenido a Biblioteca IA!</h2>
+            <p class="welcome-subtitle">Busca tu libro</p>
+            <p class="welcome-desc">Nuestro asistente inteligente te ayudará a encontrar el libro perfecto.</p>
+            <button id="start-btn" class="btn-primary">Comenzar a buscar</button>
+        </div>
+    </div>
+
+    <header class="header">
+        <div class="logo"><span class="logo-icon">📚</span><h1>Biblioteca IA</h1></div>
+            <nav class="header-nav">
+                <a href="/" class="nav-link active">Inicio</a>
+                <a href="/checkin" class="nav-link">Check-in</a>
+                <a href="/catalogo" class="nav-link" id="nav-catalogo" style="display:none;">Catálogo</a>
+                <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
+                <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
+                <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+            </nav>
+        <div class="user-menu" id="user-menu"></div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content"><h2>Tu asistente de biblioteca inteligente</h2><p>Busca libros por título, autor, categoría o tema.</p></div>
+    </section>
+
+    <section class="chat-section">
+        <div class="chat-container">
+            <div class="chat-header"><div class="chat-avatar"><div class="avatar-chat">🤖</div><div><h3>Asistente Biblioteca</h3><span class="status-dot"></span><span class="status-text">En línea</span></div></div></div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="message bot"><div class="message-avatar">🤖</div><div class="message-content"><p>¡Hola! 👋 Soy el asistente de la biblioteca. ¿Qué libro estás buscando?</p></div></div>
+            </div>
+            <div class="chat-input-container">
+                <input type="text" id="chat-input" placeholder="Ej: ¿Qué libros de programación tenés?" autocomplete="off">
+                <button id="send-btn" class="btn-send"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button>
+            </div>
+        </div>
+    </section>
+
+    <section class="suggestions">
+        <h3>💡 Categorías disponibles</h3>
+        <div class="suggestion-chips">
+            <button class="chip" onclick="quickSearch('Biologia y Cs.Naturales')">🧬 Biología</button>
+            <button class="chip" onclick="quickSearch('Electrotecnia')">⚡ Electrotecnia</button>
+            <button class="chip" onclick="quickSearch('Lengua y Literatura')">📖 Lengua y Literatura</button>
+        </div>
+    </section>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content login-content">
+            <span class="close-modal" id="close-login">&times;</span>
+            <h2>🔐 Iniciar Sesión</h2>
+            <form id="login-form">
+                <div class="form-group"><label>Usuario</label><input type="text" id="login-username" required placeholder="Tu usuario"></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="login-password" required placeholder="Tu contraseña"></div>
+                <button type="submit" class="btn-primary">Ingresar</button>
+            </form>
+            <div id="login-error" class="error-msg" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/chat.js"></script>
+    <script src="/static/js/auth.js"></script>
+</body>
+</html>
