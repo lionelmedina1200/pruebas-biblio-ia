@@ -415,6 +415,131 @@ def agregar_libro():
         traceback.print_exc()
         return jsonify({"error": "Error al agregar el libro"}), 500
 
+# ═══════════════════════════════════════════════════════════
+# RESEÑAS
+# ═══════════════════════════════════════════════════════════
+@app.route("/resenas")
+def resenas_page():
+    return render_template("resenas.html")
+
+@app.route("/api/resenas", methods=["GET"])
+def get_resenas():
+    try:
+        conn = get_db(); c = conn.cursor()
+        c.execute("SELECT id, nombre, email, estrellas, comentario, fecha FROM resenas ORDER BY fecha DESC")
+        rows = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(rows)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
+
+@app.route("/api/resenas", methods=["POST"])
+@login_required
+def post_resena():
+    try:
+        data      = request.json or {}
+        estrellas = int(data.get("estrellas", 0))
+        comentario = data.get("comentario", "").strip()
+        if not (1 <= estrellas <= 5) or not comentario:
+            return jsonify({"error": "Datos inválidos"}), 400
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        # Un usuario = una reseña (UPDATE si ya existe)
+        c.execute("SELECT id FROM resenas WHERE usuario_id = %s", (u["id"],))
+        existing = c.fetchone()
+        if existing:
+            c.execute("UPDATE resenas SET estrellas=%s, comentario=%s, fecha=NOW() WHERE usuario_id=%s",
+                      (estrellas, comentario, u["id"]))
+        else:
+            c.execute("INSERT INTO resenas (usuario_id, email, nombre, estrellas, comentario) VALUES (%s,%s,%s,%s,%s)",
+                      (u["id"], u.get("email",""), u.get("nombre", u["username"]), estrellas, comentario))
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"mensaje": "Reseña guardada"})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Error al guardar la reseña"}), 500
+
+# ═══════════════════════════════════════════════════════════
+# HISTORIAL DE CHAT
+# ═══════════════════════════════════════════════════════════
+@app.route("/api/chat/historial", methods=["GET"])
+@login_required
+def get_chat_historial():
+    try:
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        # Traer sesiones únicas con su primer mensaje
+        c.execute("""
+            SELECT DISTINCT ON (sesion_id)
+                sesion_id,
+                MIN(fecha) OVER (PARTITION BY sesion_id) as inicio,
+                FIRST_VALUE(mensaje) OVER (PARTITION BY sesion_id ORDER BY fecha) as primer_msg
+            FROM chat_historial
+            WHERE usuario_id = %s AND rol = 'user'
+            ORDER BY sesion_id, inicio DESC
+        """, (u["id"],))
+        rows = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(rows)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
+
+@app.route("/api/chat/historial/<sesion_id>", methods=["GET"])
+@login_required
+def get_chat_sesion(sesion_id):
+    try:
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        c.execute("SELECT rol, mensaje, fecha FROM chat_historial WHERE usuario_id=%s AND sesion_id=%s ORDER BY fecha",
+                  (u["id"], sesion_id))
+        rows = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(rows)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
+
+@app.route("/api/chat/guardar", methods=["POST"])
+@login_required
+def guardar_mensaje_chat():
+    try:
+        data    = request.json or {}
+        sesion  = data.get("sesion_id", "")
+        rol     = data.get("rol", "user")
+        mensaje = data.get("mensaje", "").strip()
+        if not sesion or not mensaje:
+            return jsonify({"ok": False}), 400
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        c.execute("INSERT INTO chat_historial (usuario_id, sesion_id, rol, mensaje) VALUES (%s,%s,%s,%s)",
+                  (u["id"], sesion, rol, mensaje))
+        conn.commit(); c.close(); conn.close()
+        return jsonify({"ok": True})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"ok": False}), 500
+
+# ═══════════════════════════════════════════════════════════
+# AVATAR
+# ═══════════════════════════════════════════════════════════
+@app.route("/api/avatar", methods=["PUT"])
+@login_required
+def set_avatar():
+    try:
+        data      = request.json or {}
+        avatar_id = int(data.get("avatar_id", 0))
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        c.execute("UPDATE usuarios SET avatar_id=%s WHERE id=%s", (avatar_id, u["id"]))
+        conn.commit(); c.close(); conn.close()
+        session["usuario"]["avatar_id"] = avatar_id
+        return jsonify({"ok": True})
+    except Exception:
+        traceback.print_exc()
+        return jsonify({"error": "Error al actualizar avatar"}), 500
+
 @app.route("/api/metricas")
 @bibliotecario_required
 def metricas():

@@ -22,6 +22,7 @@
             <nav class="header-nav">
                 <a href="/" class="nav-link active">Inicio</a>
                 <a href="/checkin" class="nav-link">Check-in</a>
+                <a href="/resenas" class="nav-link" id="nav-resenas" style="display:none;">Reseñas</a>
                 <a href="/catalogo" class="nav-link" id="nav-catalogo" style="display:none;">Catálogo</a>
                 <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
                 <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
@@ -39,6 +40,10 @@
             <div class="chat-header"><div class="chat-avatar"><div class="avatar-chat">🤖</div><div><h3>Asistente Biblioteca</h3><span class="status-dot"></span><span class="status-text">En línea</span></div></div></div>
             <div class="chat-messages" id="chat-messages">
                 <div class="message bot"><div class="message-avatar">🤖</div><div class="message-content"><p>¡Hola! 👋 Soy el asistente de la biblioteca. ¿Qué libro estás buscando?</p></div></div>
+            </div>
+            <div id="chat-lock-banner" class="chat-lock-banner" style="display:none;">
+                <span>🔒 Para chatear con el asistente tenés que</span>
+                <button onclick="document.getElementById('login-modal').style.display='flex'" class="btn-lock-login">Iniciar sesión</button>
             </div>
             <div class="chat-input-container">
                 <input type="text" id="chat-input" placeholder="Ej: ¿Qué libros de programación tenés?" autocomplete="off">

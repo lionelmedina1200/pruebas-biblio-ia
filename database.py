@@ -89,6 +89,31 @@ def init_db():
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
+    c.execute("""CREATE TABLE IF NOT EXISTS resenas (
+        id SERIAL PRIMARY KEY,
+        usuario_id INTEGER NOT NULL,
+        email TEXT NOT NULL,
+        nombre TEXT NOT NULL,
+        estrellas INTEGER NOT NULL CHECK (estrellas BETWEEN 1 AND 5),
+        comentario TEXT NOT NULL,
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+    c.execute("""CREATE TABLE IF NOT EXISTS chat_historial (
+        id SERIAL PRIMARY KEY,
+        usuario_id INTEGER NOT NULL,
+        sesion_id TEXT NOT NULL,
+        rol TEXT NOT NULL,
+        mensaje TEXT NOT NULL,
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+
+    # Migrar avatar_id a usuarios si no existe
+    try:
+        c.execute("ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS avatar_id INTEGER DEFAULT 0")
+    except Exception:
+        pass
+
     c.execute("""CREATE TABLE IF NOT EXISTS logs_actividad (
         id SERIAL PRIMARY KEY,
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

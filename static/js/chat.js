@@ -6,9 +6,16 @@ if (sendBtn) sendBtn.addEventListener('click', sendMessage);
 if (chatInput) chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
 async function sendMessage() {
+    // Verificar si hay sesión iniciada
+    if (window.isChatUnlocked && !window.isChatUnlocked()) {
+        const m = document.getElementById('login-modal');
+        if (m) m.style.display = 'flex';
+        return;
+    }
     const mensaje = chatInput.value.trim();
     if (!mensaje) return;
     addMessage(mensaje, 'user');
+    if (window.guardarMensajeChat) window.guardarMensajeChat('user', mensaje);
     chatInput.value = '';
     const typing = showTyping();
     try {
@@ -16,6 +23,7 @@ async function sendMessage() {
         const data = await res.json();
         typing.remove();
         addMessage(data.respuesta, 'bot');
+        if (window.guardarMensajeChat) window.guardarMensajeChat('bot', data.respuesta);
     } catch { typing.remove(); addMessage('❌ Error de conexión. Intentá de nuevo.', 'bot'); }
 }
 
