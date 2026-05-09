@@ -239,6 +239,66 @@ h3 { font-size: clamp(1rem, 2vw, 1.2rem); }
 .close-modal:hover { color: var(--rojo); }
 .login-content h2 { text-align: center; margin-bottom: 1.5rem; color: var(--text-heading); font-weight: 700; }
 
+/* ── Modal login responsive ─────────────────────────────────── */
+.modal { display: none; position: fixed; z-index: 2000; inset: 0; background: rgba(2,6,23,0.75); backdrop-filter: blur(4px); padding: 1rem; align-items: center; justify-content: center; }
+.modal.open, .modal[style*="flex"] { display: flex !important; }
+.modal-content.login-content {
+    width: 100%; max-width: 420px; padding: 2rem 2rem 1.5rem;
+    border-radius: 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    position: relative;
+    margin: auto;
+}
+@media (max-width: 480px) {
+    .modal-content.login-content { padding: 1.5rem 1.2rem 1.2rem; border-radius: 14px; }
+}
+
+/* ── Separador ─────────────────────────────────────────────── */
+.google-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 1.4rem 0 1rem;
+    color: var(--text-muted); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.03em;
+}
+.google-divider::before,
+.google-divider::after {
+    content: ''; flex: 1;
+    height: 1px; background: var(--border);
+}
+
+/* ── Botón Google ───────────────────────────────────────────── */
+.btn-google {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    width: 100%; padding: 13px 16px;
+    background: #fff;
+    color: #1f1f1f;
+    font-size: 0.95rem; font-weight: 600;
+    border-radius: 12px;
+    border: 1.5px solid #e2e8f0;
+    text-decoration: none;
+    transition: box-shadow 0.2s, transform 0.15s, background 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    cursor: pointer;
+}
+.btn-google:hover {
+    background: #f8faff;
+    box-shadow: 0 4px 18px rgba(66,133,244,0.22);
+    transform: translateY(-1px);
+    border-color: #4285F4;
+}
+.btn-google:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.btn-google svg { flex-shrink: 0; }
+
+/* ── Nota bajo el botón ─────────────────────────────────────── */
+.google-note {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.6rem;
+    margin-bottom: 0;
+}
+
 /* Scrollbar & Animations */
 .chat-messages::-webkit-scrollbar, .modal-body-scroll::-webkit-scrollbar, .table-container::-webkit-scrollbar { width: 6px; height: 6px; }
 .chat-messages::-webkit-scrollbar-track, .modal-body-scroll::-webkit-scrollbar-track, .table-container::-webkit-scrollbar-track { background: var(--bg-body); border-radius: 4px; }
