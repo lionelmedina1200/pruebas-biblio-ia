@@ -761,6 +761,39 @@ def get_session():
         })
     return jsonify({"logged_in": False})
 
+@app.route("/landing")
+def landing():
+    return render_template("landing.html")
+
+@app.route("/mis-prestamos")
+@login_required
+def mis_prestamos():
+    return render_template("mis_prestamos.html")
+
+@app.route("/api/mis-prestamos")
+@login_required
+def api_mis_prestamos():
+    try:
+        u = session["usuario"]
+        conn = get_db(); c = conn.cursor()
+        c.execute("""
+            SELECT r.id, l.titulo, l.autor, l.categoria, r.estado, r.fecha_reserva as fecha
+            FROM reservas r
+            JOIN libros l ON r.libro_id = l.id
+            WHERE r.usuario_id = %s
+            ORDER BY r.fecha_reserva DESC
+        """, (u["id"],))
+        rows = fetchall_as_dicts(c)
+        c.close(); conn.close()
+        return jsonify(rows)
+    except Exception:
+        traceback.print_exc()
+        return jsonify([]), 500
+
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("404.html"), 404
+
 if __name__ == "__main__":
     print("🚀 Iniciando Biblioteca IA")
     print("📝 Usuario Bibliotecaria: biblio / biblio123")

@@ -3,8 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Libros</title>
+    <title>Gestión de Libros · Biblioteca IA</title>
+    <meta name="description" content="Administración completa del catálogo de libros.">
+    <meta property="og:title" content="Gestión de Libros · Biblioteca IA">
+    <meta property="og:description" content="Administración completa del catálogo de libros.">
+    <meta property="og:type" content="website">
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
     <header class="header">
@@ -95,5 +104,6 @@
 
     <script src="/static/js/auth.js"></script>
     <script src="/static/js/libros.js"></script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
 </body>
 </html>

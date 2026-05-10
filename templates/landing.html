@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca IA — El asistente inteligente para tu biblioteca escolar</title>
+    <meta name="description" content="Biblioteca IA digitaliza y automatiza tu biblioteca escolar con inteligencia artificial. Búsqueda por voz, préstamos, catálogo online y más. Gratis para escuelas.">
+    <meta property="og:title" content="Biblioteca IA — Asistente inteligente para bibliotecas escolares">
+    <meta property="og:description" content="Digitalizá tu biblioteca escolar con IA. Catálogo, préstamos, asistente inteligente y más.">
+    <meta property="og:type" content="website">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* ── Reset landing ── */
+        .landing { color: var(--text-main); }
+
+        /* ── Hero ── */
+        .land-hero {
+            background: linear-gradient(135deg, #020617 0%, #0f172a 40%, #1e3a5f 100%);
+            padding: 5rem 1.5rem 4rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .land-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.15) 0%, transparent 70%);
+        }
+        .land-hero-content { position: relative; max-width: 720px; margin: 0 auto; }
+        .land-badge {
+            display: inline-block; background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.4);
+            color: #93c5fd; padding: 6px 16px; border-radius: 50px; font-size: 0.85rem;
+            font-weight: 600; margin-bottom: 1.5rem; letter-spacing: 0.05em;
+        }
+        .land-hero h1 {
+            font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800;
+            color: #fff; margin-bottom: 1rem; line-height: 1.2;
+        }
+        .land-hero h1 span { color: var(--azul-claro); }
+        .land-hero p {
+            font-size: 1.1rem; color: #94a3b8; max-width: 560px;
+            margin: 0 auto 2.5rem; line-height: 1.7;
+        }
+        .land-hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .btn-hero-primary {
+            padding: 14px 32px; background: var(--azul-claro); color: #fff;
+            border: none; border-radius: 50px; font-size: 1.05rem; font-weight: 700;
+            cursor: pointer; text-decoration: none; transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+        }
+        .btn-hero-primary:hover { background: #2563eb; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(59,130,246,0.5); }
+        .btn-hero-secondary {
+            padding: 14px 32px; background: transparent; color: #fff;
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 50px;
+            font-size: 1.05rem; font-weight: 600; cursor: pointer;
+            text-decoration: none; transition: all 0.2s;
+        }
+        .btn-hero-secondary:hover { border-color: #fff; background: rgba(255,255,255,0.05); }
+
+        /* ── Stats ── */
+        .land-stats {
+            display: flex; justify-content: center; gap: 3rem;
+            padding: 2rem 1.5rem; border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .stat { text-align: center; }
+        .stat-num { font-size: 2rem; font-weight: 800; color: var(--azul-claro); display: block; }
+        .stat-label { font-size: 0.85rem; color: var(--text-muted); }
+
+        /* ── Features ── */
+        .land-features { padding: 5rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+        .land-section-title { text-align: center; margin-bottom: 3rem; }
+        .land-section-title h2 { font-size: clamp(1.5rem, 3vw, 2rem); color: var(--text-heading); margin-bottom: 0.5rem; }
+        .land-section-title p { color: var(--text-muted); }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .feature-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 1.8rem;
+            transition: all 0.3s; position: relative; overflow: hidden;
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0;
+            height: 3px; background: var(--azul-claro);
+            transform: scaleX(0); transform-origin: left;
+            transition: transform 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-4px); box-shadow: var(--sombra-hover); border-color: rgba(59,130,246,0.3); }
+        .feature-card:hover::before { transform: scaleX(1); }
+        .feature-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+        .feature-card h3 { color: var(--text-heading); font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .feature-card p { color: var(--text-muted); font-size: 0.92rem; line-height: 1.6; }
+
+        /* ── Cómo funciona ── */
+        .land-how { background: var(--bg-card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 5rem 1.5rem; }
+        .how-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto; }
+        .how-step { text-align: center; }
+        .how-num {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--azul-claro); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; font-weight: 800; margin: 0 auto 1rem;
+        }
+        .how-step h3 { color: var(--text-heading); margin-bottom: 0.4rem; }
+        .how-step p { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* ── Roles ── */
+        .land-roles { padding: 5rem 1.5rem; max-width: 1100px; margin: 0 auto; }
+        .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .role-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 2rem;
+        }
+        .role-title { display: flex; align-items: center; gap: 10px; margin-bottom: 1rem; }
+        .role-title h3 { color: var(--text-heading); font-size: 1.1rem; margin: 0; }
+        .role-badge {
+            padding: 3px 10px; border-radius: 50px; font-size: 0.75rem; font-weight: 600;
+        }
+        .role-badge.alumno { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .role-badge.biblio { background: rgba(59,130,246,0.15); color: #93c5fd; }
+        .role-badge.admin  { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+        .role-list { list-style: none; padding: 0; }
+        .role-list li { padding: 6px 0; color: var(--text-muted); font-size: 0.9rem; border-bottom: 1px solid var(--border); }
+        .role-list li:last-child { border: none; }
+        .role-list li::before { content: '✓ '; color: var(--azul-claro); font-weight: 700; }
+
+        /* ── CTA final ── */
+        .land-cta {
+            text-align: center; padding: 6rem 1.5rem;
+            background: linear-gradient(135deg, #020617, #0f172a);
+        }
+        .land-cta h2 { font-size: clamp(1.5rem, 3vw, 2.2rem); color: #fff; margin-bottom: 1rem; }
+        .land-cta p { color: #94a3b8; margin-bottom: 2.5rem; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+        /* ── Footer ── */
+        .land-footer {
+            background: var(--bg-card); border-top: 1px solid var(--border);
+            padding: 2rem 1.5rem; text-align: center;
+            color: var(--text-muted); font-size: 0.85rem;
+        }
+        .land-footer a { color: var(--azul-claro); text-decoration: none; }
+
+        /* ── Nav landing ── */
+        .land-nav {
+            background: rgba(11,17,32,0.95); backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 100;
+            border-bottom: 1px solid var(--border);
+            padding: 0.8rem 1.5rem;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .land-nav-logo { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 1.1rem; font-weight: 700; text-decoration: none; }
+        .land-nav-logo span { font-size: 1.5rem; }
+        .land-nav-links { display: flex; align-items: center; gap: 1rem; }
+        .land-nav-link { color: #94a3b8; text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        .land-nav-link:hover { color: #fff; }
+        @media (max-width: 600px) {
+            .land-stats { gap: 2rem; }
+            .land-nav-links .land-nav-link:not(.btn-hero-primary) { display: none; }
+        }
+    </style>
+</head>
+<body class="landing">
+
+    <!-- NAV -->
+    <nav class="land-nav">
+        <a href="/landing" class="land-nav-logo"><span>📚</span> Biblioteca IA</a>
+        <div class="land-nav-links">
+            <a href="#features" class="land-nav-link">Funciones</a>
+            <a href="#como" class="land-nav-link">Cómo funciona</a>
+            <a href="#roles" class="land-nav-link">Roles</a>
+            <a href="/" class="btn-hero-primary" style="padding:10px 22px;font-size:0.9rem;">Entrar →</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="land-hero">
+        <div class="land-hero-content">
+            <div class="land-badge">🚀 100% Gratuito para instituciones educativas</div>
+            <h1>La biblioteca escolar <span>inteligente</span> que tu escuela necesita</h1>
+            <p>Digitalizá tu biblioteca con IA. Tus alumnos buscan libros conversando, los bibliotecarios gestionan todo desde un panel, y el director ve estadísticas en tiempo real.</p>
+            <div class="land-hero-btns">
+                <a href="/" class="btn-hero-primary">📚 Ingresar al sistema</a>
+                <a href="#como" class="btn-hero-secondary">Ver cómo funciona</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <div class="land-stats">
+        <div class="stat"><span class="stat-num">IA</span><span class="stat-label">Asistente inteligente</span></div>
+        <div class="stat"><span class="stat-num">3</span><span class="stat-label">Roles de usuario</span></div>
+        <div class="stat"><span class="stat-num">100%</span><span class="stat-label">Gratuito</span></div>
+        <div class="stat"><span class="stat-num">📱</span><span class="stat-label">Funciona en mobile</span></div>
+    </div>
+
+    <!-- FEATURES -->
+    <section class="land-features" id="features">
+        <div class="land-section-title">
+            <h2>Todo lo que necesitás en un solo lugar</h2>
+            <p>Sin instalaciones, sin costos, sin complicaciones.</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <span class="feature-icon">🤖</span>
+                <h3>Asistente con IA</h3>
+                <p>Los alumnos buscan libros conversando naturalmente. La IA entiende lo que buscan y devuelve resultados precisos al instante.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📋</span>
+                <h3>Gestión de préstamos</h3>
+                <p>Sistema completo de check-in, reservas, préstamos y devoluciones. El bibliotecario controla todo desde un panel intuitivo.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📚</span>
+                <h3>Catálogo digital</h3>
+                <p>Todos los libros de la biblioteca disponibles online con búsqueda, filtros y disponibilidad en tiempo real.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📊</span>
+                <h3>Estadísticas y métricas</h3>
+                <p>Dashboard con consultas, libros más pedidos, alumnos activos y reservas pendientes. Todo en tiempo real.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⭐</span>
+                <h3>Reseñas de alumnos</h3>
+                <p>Los alumnos dejan reseñas del servicio. Feedback real para mejorar la biblioteca y motivar la lectura.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">📱</span>
+                <h3>Mobile-first</h3>
+                <p>Diseñado desde el primer pixel para funcionar perfecto en cualquier celular. Sin app, desde el navegador.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🔐</span>
+                <h3>Login con Google</h3>
+                <p>Los alumnos ingresan con su cuenta escolar de Google. Sin registros manuales, sin contraseñas olvidadas.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">🔒</span>
+                <h3>Roles y permisos</h3>
+                <p>Alumno, bibliotecario y admin. Cada rol ve solo lo que necesita. Seguro y controlado.</p>
+            </div>
+            <div class="feature-card">
+                <span class="feature-icon">⚡</span>
+                <h3>Instalable como app</h3>
+                <p>Se instala en el celular como si fuera una app nativa. Sin App Store ni Play Store. Un clic y listo.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CÓMO FUNCIONA -->
+    <section class="land-how" id="como">
+        <div class="land-section-title">
+            <h2>¿Cómo funciona?</h2>
+            <p>Simple para el alumno, potente para el bibliotecario.</p>
+        </div>
+        <div class="how-steps">
+            <div class="how-step">
+                <div class="how-num">1</div>
+                <h3>El alumno ingresa</h3>
+                <p>Entra con su cuenta Google o usuario/contraseña en segundos.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-num">2</div>
+                <h3>Busca su libro</h3>
+                <p>Le pregunta al asistente en lenguaje natural o busca en el catálogo.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-num">3</div>
+                <h3>Reserva y hace check-in</h3>
+                <p>Solicita el libro y hace el check-in desde el celular o en la biblioteca.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-num">4</div>
+                <h3>El bibliotecario gestiona</h3>
+                <p>Ve las reservas, marca préstamos y devoluciones desde su panel.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ROLES -->
+    <section class="land-roles" id="roles">
+        <div class="land-section-title">
+            <h2>Un sistema, tres experiencias</h2>
+            <p>Cada usuario tiene exactamente lo que necesita.</p>
+        </div>
+        <div class="roles-grid">
+            <div class="role-card">
+                <div class="role-title">
+                    <span>👤</span>
+                    <h3>Alumno</h3>
+                    <span class="role-badge alumno">Gratis</span>
+                </div>
+                <ul class="role-list">
+                    <li>Chat con asistente IA</li>
+                    <li>Catálogo de libros con filtros</li>
+                    <li>Sistema de check-in</li>
+                    <li>Historial de préstamos</li>
+                    <li>Dejar reseñas</li>
+                    <li>Login con Google</li>
+                </ul>
+            </div>
+            <div class="role-card">
+                <div class="role-title">
+                    <span>📚</span>
+                    <h3>Bibliotecario</h3>
+                    <span class="role-badge biblio">Gestión completa</span>
+                </div>
+                <ul class="role-list">
+                    <li>Dashboard con métricas</li>
+                    <li>Gestión de reservas y préstamos</li>
+                    <li>Alta y baja de libros</li>
+                    <li>Registro de nuevos alumnos</li>
+                    <li>Control de stock</li>
+                    <li>Historial de actividad</li>
+                </ul>
+            </div>
+            <div class="role-card">
+                <div class="role-title">
+                    <span>⚙️</span>
+                    <h3>Administrador</h3>
+                    <span class="role-badge admin">Control total</span>
+                </div>
+                <ul class="role-list">
+                    <li>Logs de toda la actividad</li>
+                    <li>Auditoría del sistema</li>
+                    <li>Control de accesos</li>
+                    <li>Monitoreo en tiempo real</li>
+                    <li>Gestión de usuarios</li>
+                    <li>Configuración avanzada</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="land-cta">
+        <h2>¿Listo para digitalizar tu biblioteca?</h2>
+        <p>Gratis, sin instalaciones, funciona desde el primer día. Solo entrá y empezá.</p>
+        <a href="/" class="btn-hero-primary" style="font-size:1.1rem; padding:16px 40px;">
+            📚 Ingresar ahora — Es gratis
+        </a>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="land-footer">
+        <p>📚 <strong>Biblioteca IA</strong> — Desarrollado para escuelas y colegios técnicos · <a href="/">Entrar al sistema</a></p>
+    </footer>
+
+    <script>
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+        // PWA install
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+        // Register SW
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js');
+        }
+    </script>
+</body>
+</html>

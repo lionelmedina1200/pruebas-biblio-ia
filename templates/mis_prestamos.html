@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Préstamos · Biblioteca IA</title>
+    <meta name="description" content="Historial de préstamos de libros">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .prestamos-main { padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+        .prestamos-hero { text-align: center; padding: 2rem 1rem 1.5rem; }
+        .prestamos-hero h2 { font-size: 1.6rem; color: var(--text-heading); margin-bottom: 0.3rem; }
+        .prestamos-hero p { color: var(--text-muted); }
+
+        /* Stats del alumno */
+        .alumno-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+        @media(max-width:500px){ .alumno-stats { grid-template-columns: 1fr; } }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+        .tab-btn {
+            padding: 10px 18px; background: none; border: none; border-bottom: 3px solid transparent;
+            color: var(--text-muted); font-size: 0.92rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; margin-bottom: -1px;
+        }
+        .tab-btn.active { color: var(--azul-claro); border-bottom-color: var(--azul-claro); }
+        .tab-btn:hover { color: var(--text-heading); }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* Libro card */
+        .libro-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 1.2rem 1.4rem;
+            display: flex; align-items: center; gap: 1rem;
+            margin-bottom: 0.8rem; transition: all 0.2s;
+        }
+        .libro-card:hover { border-color: rgba(59,130,246,0.3); }
+        .libro-icon {
+            width: 48px; height: 48px; border-radius: 10px;
+            background: var(--azul-marino); display: flex; align-items: center;
+            justify-content: center; font-size: 1.5rem; flex-shrink: 0;
+        }
+        .libro-info { flex: 1; min-width: 0; }
+        .libro-titulo { font-weight: 600; color: var(--text-heading); font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .libro-autor  { font-size: 0.82rem; color: var(--text-muted); }
+        .libro-fecha  { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .libro-estado { flex-shrink: 0; }
+
+        .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 0.8rem; }
+
+        /* Skeleton */
+        .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, var(--border) 50%, var(--bg-card) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .skel-card { height: 72px; margin-bottom: 0.8rem; border-radius: var(--radius); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <div class="logo"><span class="logo-icon">📚</span><h1>Biblioteca IA</h1></div>
+            <div class="user-menu" id="user-menu"></div>
+        </div>
+        <nav class="header-nav"><div class="header-nav-inner">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/resenas" class="nav-link" id="nav-resenas" style="display:none;">Reseñas</a>
+            <a href="/catalogo" class="nav-link" id="nav-catalogo" style="display:none;">Catálogo</a>
+            <a href="/mis-prestamos" class="nav-link active" id="nav-prestamos" style="display:none;">Mis Préstamos</a>
+            <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
+            <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+        </div></nav>
+    </header>
+
+    <div class="prestamos-hero">
+        <h2>📖 Mis Préstamos</h2>
+        <p>Tu historial completo de libros prestados</p>
+    </div>
+
+    <main class="prestamos-main">
+        <!-- Stats -->
+        <div class="alumno-stats" id="alumno-stats">
+            <div class="metric-card skeleton skel-card"></div>
+            <div class="metric-card skeleton skel-card"></div>
+            <div class="metric-card skeleton skel-card"></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('activos')">📤 Activos</button>
+            <button class="tab-btn" onclick="switchTab('historial')">📋 Historial completo</button>
+        </div>
+
+        <div class="tab-panel active" id="tab-activos">
+            <div id="lista-activos"><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div></div>
+        </div>
+        <div class="tab-panel" id="tab-historial">
+            <div id="lista-historial"><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div></div>
+        </div>
+    </main>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+    let prestamos = [];
+
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['activos','historial'][i] === tab));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+    }
+
+    function estadoBadge(estado) {
+        const map = {
+            'prestado': '<span class="badge-prestado">📖 Prestado</span>',
+            'devuelto': '<span class="badge-devuelto">✅ Devuelto</span>',
+            'pendiente': '<span class="badge-pendiente">⏳ Pendiente</span>',
+        };
+        return map[estado] || `<span class="badge">${estado}</span>`;
+    }
+
+    function renderLibroCard(p) {
+        const fecha = p.fecha ? new Date(p.fecha).toLocaleDateString('es-AR', {day:'2-digit', month:'short', year:'numeric'}) : '-';
+        return `
+            <div class="libro-card">
+                <div class="libro-icon">📚</div>
+                <div class="libro-info">
+                    <div class="libro-titulo">${p.titulo || 'Sin título'}</div>
+                    <div class="libro-autor">${p.autor || ''}</div>
+                    <div class="libro-fecha">📅 ${fecha}</div>
+                </div>
+                <div class="libro-estado">${estadoBadge(p.estado)}</div>
+            </div>`;
+    }
+
+    async function loadPrestamos() {
+        try {
+            const res = await fetch('/api/mis-prestamos');
+            if (!res.ok) throw new Error();
+            prestamos = await res.json();
+
+            // Stats
+            const activos   = prestamos.filter(p => p.estado === 'prestado' || p.estado === 'pendiente');
+            const devueltos = prestamos.filter(p => p.estado === 'devuelto');
+            document.getElementById('alumno-stats').innerHTML = `
+                <div class="metric-card"><div class="metric-icon">📤</div><div class="metric-info"><h3>${activos.length}</h3><p>Préstamos activos</p></div></div>
+                <div class="metric-card"><div class="metric-icon">✅</div><div class="metric-info"><h3>${devueltos.length}</h3><p>Devueltos</p></div></div>
+                <div class="metric-card"><div class="metric-icon">📚</div><div class="metric-info"><h3>${prestamos.length}</h3><p>Total histórico</p></div></div>
+            `;
+
+            // Activos
+            document.getElementById('lista-activos').innerHTML = activos.length
+                ? activos.map(renderLibroCard).join('')
+                : `<div class="empty-state"><div class="empty-icon">📭</div><p>No tenés préstamos activos.</p></div>`;
+
+            // Historial completo
+            document.getElementById('lista-historial').innerHTML = prestamos.length
+                ? prestamos.map(renderLibroCard).join('')
+                : `<div class="empty-state"><div class="empty-icon">📭</div><p>Todavía no solicitaste ningún libro.</p></div>`;
+
+        } catch(e) {
+            document.getElementById('lista-activos').innerHTML = '<div class="empty-state"><p>Error cargando préstamos. Intentá recargar.</p></div>';
+        }
+    }
+
+    window._onUserLoaded = (usuario) => {
+        if (!usuario) { window.location.href = '/'; return; }
+        loadPrestamos();
+        // Mostrar nav-prestamos
+        const el = document.getElementById('nav-prestamos');
+        if (el) el.style.display = 'flex';
+    };
+    </script>
+</body>
+</html>
