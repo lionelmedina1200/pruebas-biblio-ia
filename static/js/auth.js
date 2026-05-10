@@ -9,7 +9,6 @@ function newSesionId() {
     return 'chat_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
 }
 
-// ─── Avatar HTML ─────────────────────────────────────────────
 function getAvatarHTML(usuario, size) {
     size = size || 36;
     if (!usuario) return anonSVG(size);
@@ -31,7 +30,6 @@ function colorSVG(color, letter, s) {
     return '<svg viewBox="0 0 100 100" width="'+s+'" height="'+s+'"><circle cx="50" cy="50" r="50" fill="'+color+'"/><text x="50" y="64" font-size="44" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="700">'+letter+'</text></svg>';
 }
 
-// ─── Menú logueado ────────────────────────────────────────────
 function buildUserMenu(usuario) {
     var userMenu = document.getElementById('user-menu');
     if (!userMenu) return;
@@ -92,7 +90,6 @@ function buildUserMenu(usuario) {
     loadHistorial();
 }
 
-// ─── Historial de chats ───────────────────────────────────────
 async function loadHistorial() {
     var cont = document.getElementById('historial-list');
     if (!cont) return;
@@ -137,7 +134,6 @@ async function cargarSesionChat(sesionId) {
     cont.scrollTop = cont.scrollHeight;
 }
 
-// ─── Selector de avatar ───────────────────────────────────────
 function abrirSelectorAvatar(usuario) {
     var modal = document.getElementById('modal-avatar');
     if (!modal) {
@@ -152,9 +148,7 @@ function abrirSelectorAvatar(usuario) {
     var currentIdx = Number(usuario.avatar_id) || 1;
     var opts = colors.map(function(color, i) {
         var sel = (currentIdx - 1 === i) ? ' selected' : '';
-        return '<button class="avatar-opt'+sel+'" data-idx="'+(i+1)+'" style="background:'+color+';border:3px solid '+(currentIdx-1===i?'#fff':'transparent')+';">' +
-               '<svg viewBox="0 0 100 100" width="52" height="52"><circle cx="50" cy="50" r="50" fill="'+color+'"/><text x="50" y="64" font-size="44" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="700">'+letter+'</text></svg>' +
-               '</button>';
+        return '<button class="avatar-opt'+sel+'" data-idx="'+(i+1)+'" style="background:'+color+';border:3px solid '+(currentIdx-1===i?'#fff':'transparent')+';"><svg viewBox="0 0 100 100" width="52" height="52"><circle cx="50" cy="50" r="50" fill="'+color+'"/><text x="50" y="64" font-size="44" text-anchor="middle" fill="#fff" font-family="sans-serif" font-weight="700">'+letter+'</text></svg></button>';
     }).join('');
     modal.innerHTML =
         '<div class="modal-content" style="max-width:380px;text-align:center;">' +
@@ -165,7 +159,6 @@ function abrirSelectorAvatar(usuario) {
         '</div>';
 
     modal.style.display = 'flex';
-
     document.getElementById('close-avatar').onclick = function() { modal.style.display='none'; };
 
     modal.querySelectorAll('.avatar-opt').forEach(function(btn) {
@@ -182,7 +175,6 @@ function abrirSelectorAvatar(usuario) {
     });
 }
 
-// ─── Menú guest (sin login) ───────────────────────────────────
 function buildGuestMenu() {
     var userMenu = document.getElementById('user-menu');
     if (!userMenu) return;
@@ -194,6 +186,7 @@ function buildGuestMenu() {
 }
 
 // ─── Nav según rol ────────────────────────────────────────────
+// FIX: display='flex' para que los nav-link mantengan alineación vertical y el nav quede centrado
 function updateNav(usuario) {
     var ids = ['nav-dashboard','nav-registro','nav-libros','nav-catalogo','nav-resenas'];
     ids.forEach(function(id) {
@@ -201,7 +194,7 @@ function updateNav(usuario) {
         if (el) el.style.display = 'none';
     });
     if (!usuario) return;
-    var show = function(id) { var el=document.getElementById(id); if(el) el.style.display='block'; };
+    var show = function(id) { var el=document.getElementById(id); if(el) el.style.display='flex'; };
     show('nav-resenas');
     if (usuario.rol === 'bibliotecario') {
         show('nav-dashboard'); show('nav-registro'); show('nav-libros');
@@ -212,7 +205,6 @@ function updateNav(usuario) {
     }
 }
 
-// ─── clearChat ────────────────────────────────────────────────
 function clearChat() {
     var cont = document.getElementById('chat-messages');
     if (!cont) return;
@@ -224,7 +216,6 @@ function clearChat() {
         '</div>';
 }
 
-// ─── Exponer helpers globales para chat.js ────────────────────
 window.guardarMensajeChat = async function(rol, mensaje) {
     if (!_usuario || !_sesionChatId) return;
     try {
@@ -239,7 +230,6 @@ window.isChatUnlocked = function() { return !!_usuario; };
 window.getAvatarHTML  = getAvatarHTML;
 window.getCurrentUser = function() { return _usuario; };
 
-// ─── Login form ───────────────────────────────────────────────
 function bindLoginForm() {
     var loginForm  = document.getElementById('login-form');
     var loginError = document.getElementById('login-error');
@@ -277,7 +267,6 @@ function bindLoginForm() {
     };
 }
 
-// ─── Init ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async function() {
     _sesionChatId = newSesionId();
     bindLoginForm();
@@ -304,28 +293,15 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// Mostrar/ocultar banner de "necesitás iniciar sesión" en el chat
+// FIX: el input del chat siempre habilitado — al enviar sin login abre el modal automáticamente
 function updateChatLockBanner(loggedIn) {
     var banner = document.getElementById('chat-lock-banner');
     var input  = document.getElementById('chat-input');
-    if (!banner) return;
-    if (loggedIn) {
-        banner.style.display = 'none';
-        if (input) { input.disabled = false; input.placeholder = 'Ej: ¿Qué libros de programación tenés?'; }
-    } else {
-        banner.style.display = 'flex';
-        if (input) { input.disabled = true; input.placeholder = 'Iniciá sesión para chatear...'; }
+    if (banner) banner.style.display = 'none';
+    if (input) {
+        input.disabled = false;
+        input.placeholder = loggedIn ? 'Ej: ¿Qué libros de programación tenés?' : 'Escribí tu pregunta...';
     }
 }
 
-// Patch init para controlar el banner
-var _origDomLoaded = document.addEventListener;
-document.addEventListener('DOMContentLoaded', function() {
-    // Este listener corre después del init principal
-    setTimeout(function() {
-        updateChatLockBanner(!!_usuario);
-    }, 600);
-});
-
-// Exponer para que el init principal lo llame
 window._updateChatLockBanner = updateChatLockBanner;

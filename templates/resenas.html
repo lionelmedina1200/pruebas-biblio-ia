@@ -15,17 +15,34 @@
         /* ── Formulario ── */
         .form-resena { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.8rem; position:sticky; top:80px; }
         .form-resena h3 { color:var(--azul-claro); margin-bottom:1.2rem; font-size:1.1rem; }
-        .stars-selector { display:flex; gap:8px; margin-bottom:1.2rem; flex-direction:row-reverse; justify-content:flex-end; }
+        .stars-selector { display:flex; gap:8px; margin-bottom:1.2rem; flex-direction:row; justify-content:flex-end; }
         .stars-selector input { display:none; }
-        .stars-selector label {
-            font-size:2rem; cursor:pointer; color:#334155; transition:color 0.15s;
-        }
+        .stars-selector label { font-size:2rem; cursor:pointer; color:#334155; transition:color 0.15s; }
         .stars-selector label:hover,
         .stars-selector label:hover ~ label,
         .stars-selector input:checked ~ label { color:#f59e0b; }
-        .stars-selector { flex-direction:row; }
         .star-lbl { font-size:2rem; cursor:pointer; color:#334155; transition:color 0.15s; user-select:none; }
-        textarea.form-input { min-height:120px; resize:vertical; font-family:inherit; }
+
+        /* FIX: textarea con estilo oscuro igual al resto de inputs */
+        textarea.form-input {
+            min-height: 120px;
+            resize: vertical;
+            font-family: inherit;
+            width: 100%;
+            padding: 11px 14px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            outline: none;
+            background: var(--bg-input);
+            color: var(--text-heading);
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+            display: block;
+        }
+        textarea.form-input:focus { border-color: var(--azul-claro); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+        textarea.form-input::placeholder { color: var(--text-muted); }
+
         .user-badge { display:flex; align-items:center; gap:10px; background:var(--bg-input); border-radius:10px; padding:10px 14px; margin-bottom:1.2rem; }
         .user-badge img { width:36px;height:36px;border-radius:50%;object-fit:cover; }
         .user-badge .ubadge-avatar { width:36px;height:36px;border-radius:50%;background:var(--azul-marino);display:flex;align-items:center;justify-content:center;font-size:1rem;color:#fff;font-weight:600; }
@@ -102,7 +119,7 @@
         </div>
     </div>
 
-    <!-- Modal login (mismo que index) -->
+    <!-- Modal login -->
     <div id="login-modal" class="modal">
         <div class="modal-content login-content">
             <span class="close-modal" id="close-login">&times;</span>
@@ -129,7 +146,6 @@
 
     <script src="/static/js/auth.js"></script>
     <script>
-    // ── Estrellas interactivas ──────────────────────────────
     let selectedStars = 0;
 
     function renderFormLogueado(usuario) {
@@ -196,7 +212,6 @@
         }
     }
 
-    // ── Cargar reseñas ──────────────────────────────────────
     async function loadResenas() {
         const res  = await fetch('/api/resenas');
         const list = await res.json();
@@ -209,7 +224,6 @@
             return;
         }
 
-        // Summary
         const avg = (list.reduce((a,r)=>a+r.estrellas,0)/list.length).toFixed(1);
         document.getElementById('avg-rating').textContent  = avg;
         document.getElementById('avg-stars').textContent   = '★'.repeat(Math.round(avg)) + '☆'.repeat(5-Math.round(avg));
@@ -221,7 +235,6 @@
             const pic    = r.picture ? `<img src="${r.picture}" class="resena-avatar" alt="">` : `<div class="resena-avatar-letter">${letra}</div>`;
             const stars  = '★'.repeat(r.estrellas) + '☆'.repeat(5-r.estrellas);
             const fecha  = new Date(r.fecha).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'});
-            // Ocultar email parcialmente: matias***@gmail.com
             const emailParts = (r.email||'').split('@');
             const emailMask  = emailParts[0].slice(0,3) + '***@' + (emailParts[1]||'');
             return `<div class="resena-card">
@@ -241,12 +254,10 @@
         }).join('');
     }
 
-    // ── Init ────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
         loadResenas();
     });
 
-    // Se llama desde auth.js cuando el usuario está logueado
     window._onUserLoaded = (usuario) => {
         if (usuario) renderFormLogueado(usuario);
     };
