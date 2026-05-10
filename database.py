@@ -94,10 +94,16 @@ def init_db():
         usuario_id INTEGER NOT NULL,
         email TEXT NOT NULL,
         nombre TEXT NOT NULL,
+        picture TEXT DEFAULT '',
         estrellas INTEGER NOT NULL CHECK (estrellas BETWEEN 1 AND 5),
         comentario TEXT NOT NULL,
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
+    # Migración: agregar picture si no existe aún
+    try:
+        c.execute("ALTER TABLE resenas ADD COLUMN IF NOT EXISTS picture TEXT DEFAULT ''")
+    except Exception:
+        pass
 
     c.execute("""CREATE TABLE IF NOT EXISTS chat_historial (
         id SERIAL PRIMARY KEY,

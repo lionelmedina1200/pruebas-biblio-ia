@@ -426,7 +426,7 @@ def resenas_page():
 def get_resenas():
     try:
         conn = get_db(); c = conn.cursor()
-        c.execute("SELECT id, nombre, email, estrellas, comentario, fecha FROM resenas ORDER BY fecha DESC")
+        c.execute("SELECT id, nombre, email, picture, estrellas, comentario, fecha FROM resenas ORDER BY fecha DESC")
         rows = fetchall_as_dicts(c)
         c.close(); conn.close()
         return jsonify(rows)
@@ -449,11 +449,11 @@ def post_resena():
         c.execute("SELECT id FROM resenas WHERE usuario_id = %s", (u["id"],))
         existing = c.fetchone()
         if existing:
-            c.execute("UPDATE resenas SET estrellas=%s, comentario=%s, fecha=NOW() WHERE usuario_id=%s",
-                      (estrellas, comentario, u["id"]))
+            c.execute("UPDATE resenas SET estrellas=%s, comentario=%s, picture=%s, fecha=NOW() WHERE usuario_id=%s",
+                      (estrellas, comentario, u.get("picture",""), u["id"]))
         else:
-            c.execute("INSERT INTO resenas (usuario_id, email, nombre, estrellas, comentario) VALUES (%s,%s,%s,%s,%s)",
-                      (u["id"], u.get("email",""), u.get("nombre", u["username"]), estrellas, comentario))
+            c.execute("INSERT INTO resenas (usuario_id, email, nombre, picture, estrellas, comentario) VALUES (%s,%s,%s,%s,%s,%s)",
+                      (u["id"], u.get("email",""), u.get("nombre", u["username"]), u.get("picture",""), estrellas, comentario))
         conn.commit(); c.close(); conn.close()
         return jsonify({"mensaje": "Reseña guardada"})
     except Exception:
