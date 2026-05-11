@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo · Biblioteca IA</title>
+    <meta name="description" content="Explorá todos los libros disponibles en la biblioteca con filtros y búsqueda avanzada.">
+    <meta property="og:title" content="Catálogo · Biblioteca IA">
+    <meta property="og:description" content="Explorá todos los libros disponibles en la biblioteca con filtros y búsqueda avanzada.">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <div class="logo">
+            <span class="logo-icon">📚</span>
+            <h1>Catalogo</h1>
+        </div>
+            <div class="user-menu" id="user-menu"></div>
+        </div>
+
+        <nav class="header-nav"><div class="header-nav-inner">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/catalogo" class="nav-link active">Catálogo</a>
+        </div></nav>
+    </header>
+
+    <main class="dashboard-main">
+        <h2>📚 Catálogo de Libros</h2>
+        <p style="color: #94a3b8; margin-bottom: 1.5rem;">Explorá todos los libros disponibles en nuestra biblioteca.</p>
+
+        <div class="admin-toolbar">
+            <input type="text" id="catalogo-search" class="search-input" placeholder="Buscar por título, autor o categoría...">
+            <select id="catalogo-per-page">
+                <option value="10">10 por página</option>
+                <option value="25">25 por página</option>
+                <option value="50">50 por página</option>
+            </select>
+        </div>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Título</th>
+                            <th>Autor</th>
+                            <th>Categoría</th>
+                            <th>Editorial</th>
+                            <th>Ubicación</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="catalogo-tbody">
+                        <!-- Los libros se cargan con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="catalogo-pagination"></div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        let currentPage = 1;
+        let perPage = 10;
+
+        async function loadCatalogo(page = 1) {
+            currentPage = page;
+            const busqueda = document.getElementById('catalogo-search')?.value || '';
+            
+            try {
+                const res = await fetch(`/api/libros?page=${page}&per_page=${perPage}&busqueda=${encodeURIComponent(busqueda)}`);
+                const data = await res.json();
+                const tbody = document.getElementById('catalogo-tbody');
+                
+                if (data.libros.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">No se encontraron libros.</td></tr>';
+                } else {
+                    tbody.innerHTML = data.libros.map(l => `
+                        <tr>
+                            <td>${l.id}</td>
+                            <td><strong>${l.titulo}</strong></td>
+                            <td>${l.autor}</td>
+                            <td>${l.categoria}</td>
+                            <td>${l.editorial || '-'}</td>
+                            <td>${l.ubicacion || '-'}</td>
+                            <td>
+                                <span class="badge ${l.disponible ? 'disponible' : 'no-disponible'}">
+                                    ${l.disponible ? '✅ Disponible' : '❌ Prestado'}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                
+                renderPagination(data.total_pages, page);
+            } catch (err) {
+                console.error("Error cargando catálogo: ", err);
+            }
+        }
+
+        function renderPagination(totalPages, current) {
+            const container = document.getElementById('catalogo-pagination');
+            if (!container) return;
+            
+            let html = `<button class="page-btn" onclick="loadCatalogo(${current - 1})" ${current === 1 ? 'disabled' : ''}>◀ Ant</button>`;
+
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= current - 1 && i <= current + 1)) {
+                    html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="loadCatalogo(${i})">${i}</button>`;
+                } else if (i === current - 2 || i === current + 2) {
+                    html += `<span style="padding:8px">...</span>`;
+                }
+            }
+
+            html += `<button class="page-btn" onclick="loadCatalogo(${current + 1})" ${current === totalPages ? 'disabled' : ''}>Sig ▶</button>`;
+            container.innerHTML = html;
+        }
+
+        // Event Listeners
+        if (document.getElementById('catalogo-search')) {
+            document.getElementById('catalogo-search').addEventListener('input', () => loadCatalogo(1));
+        }
+        
+        if (document.getElementById('catalogo-per-page')) {
+            document.getElementById('catalogo-per-page').addEventListener('change', (e) => {
+                perPage = parseInt(e.target.value);
+                loadCatalogo(1);
+            });
+        }
+        
+        if (document.getElementById('catalogo-tbody')) {
+            loadCatalogo(1);
+        }
+    </script>
+    <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js');</script>
+</body>
+</html>

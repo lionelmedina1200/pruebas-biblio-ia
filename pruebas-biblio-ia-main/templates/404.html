@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Página no encontrada · Biblioteca IA</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .not-found {
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        .not-found-icon { font-size: 6rem; margin-bottom: 1rem; animation: bounce 2s infinite; }
+        .not-found h1 { font-size: 6rem; color: var(--azul-claro); margin: 0; font-weight: 900; line-height: 1; }
+        .not-found h2 { font-size: 1.5rem; color: var(--text-heading); margin: 0.5rem 0 1rem; }
+        .not-found p  { color: var(--text-muted); max-width: 400px; margin-bottom: 2rem; }
+        .not-found-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+        .btn-secondary {
+            padding: 12px 24px; border-radius: 50px; font-size: 1rem; font-weight: 600;
+            border: 2px solid var(--azul-claro); color: var(--azul-claro);
+            background: transparent; cursor: pointer; text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: var(--azul-claro); color: #fff; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <div class="logo"><span class="logo-icon">📚</span><h1>Biblioteca IA</h1></div>
+            <div class="user-menu" id="user-menu"></div>
+        </div>
+        <nav class="header-nav"><div class="header-nav-inner">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/resenas" class="nav-link" id="nav-resenas" style="display:none;">Reseñas</a>
+            <a href="/catalogo" class="nav-link" id="nav-catalogo" style="display:none;">Catálogo</a>
+            <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
+        </div></nav>
+    </header>
+
+    <div class="not-found">
+        <div class="not-found-icon">📖</div>
+        <h1>404</h1>
+        <h2>Página no encontrada</h2>
+        <p>El libro que buscás no está en esta estantería. Quizás fue mal catalogado o simplemente no existe.</p>
+        <div class="not-found-btns">
+            <a href="/" class="btn-primary">🏠 Volver al inicio</a>
+            <a href="/catalogo" class="btn-secondary">📚 Ver catálogo</a>
+        </div>
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+</body>
+</html>

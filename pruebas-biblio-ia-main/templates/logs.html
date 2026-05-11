@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logs Admin - Biblioteca IA</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <h1>Biblioteca IA</h1>
+            </div>
+            <div class="user-menu" id="user-menu"></div>
+        </div>
+        <nav class="header-nav"><div class="header-nav-inner">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/mis-libros" class="nav-link" id="nav-mis-libros" style="display:none;">Mis Libros</a>
+            <a href="/dashboard" class="nav-link" id="nav-dashboard" style="display:none;">Dashboard</a>
+            <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Gestión Libros</a>
+            <a href="/logs" class="nav-link active">Logs Admin</a>
+        </div></nav>
+    </header>
+
+    <main class="dashboard-main">
+        <h2>📊 Registro de Actividades (Admin)</h2>
+        <p style="color: #94a3b8; margin-bottom: 1.5rem;">Historial completo de movimientos realizados por la bibliotecaria.</p>
+
+        <div class="table-container">
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Tabla</th>
+                            <th>ID Registro</th>
+                            <th>Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-tbody">
+                        <!-- Logs cargados por JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script>
+        async function loadLogs() {
+            try {
+                const res = await fetch('/api/logs');
+                const logs = await res.json();
+                const tbody = document.getElementById('logs-tbody');
+                
+                tbody.innerHTML = logs.map(log => {
+                    let actionClass = 'log-action';
+                    if (log.accion.includes('Crear')) actionClass += ' crear';
+                    else if (log.accion.includes('Editar')) actionClass += ' editar';
+                    else if (log.accion.includes('Eliminar')) actionClass += ' eliminar';
+                    else if (log.accion.includes('reserva')) actionClass += ' reserva';
+                    
+                    return `
+                        <tr>
+                            <td>${new Date(log.timestamp).toLocaleString()}</td>
+                            <td>${log.usuario_nombre}</td>
+                            <td class="${actionClass}">${log.accion}</td>
+                            <td>${log.tabla_afectada}</td>
+                            <td>${log.registro_id || '-'}</td>
+                            <td>${log.detalles}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error("Error cargando logs: ", err);
+            }
+        }
+
+        if (document.getElementById('logs-tbody')) {
+            loadLogs();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard · Biblioteca IA</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        .skeleton { background: linear-gradient(90deg,var(--bg-card) 25%,#1e293b 50%,var(--bg-card) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; }
+        @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+        .skel-metric { height:80px; border-radius:var(--radius); }
+        .charts-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin:1.5rem 0; }
+        @media(max-width:700px){ .charts-grid{grid-template-columns:1fr;} }
+        .chart-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); padding:1.2rem; }
+        .chart-card h3 { color:var(--text-heading); font-size:0.95rem; margin-bottom:1rem; }
+        .chart-wrap { position:relative; height:200px; }
+        .metrics-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:1.5rem; }
+        .metric-card { transition:all 0.3s; }
+        .metric-card:hover { transform:translateY(-4px); box-shadow:var(--sombra-hover); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-top">
+            <div class="logo"><span class="logo-icon">📚</span><h1>Dashboard</h1></div>
+            <div id="user-menu"></div>
+        </div>
+        <nav class="header-nav"><div class="header-nav-inner">
+            <a href="/" class="nav-link">Inicio</a>
+            <a href="/checkin" class="nav-link">Check-in</a>
+            <a href="/dashboard" class="nav-link active">Dashboard</a>
+            <a href="/registro" class="nav-link" id="nav-registro" style="display:none;">Registrar Alumno</a>
+            <a href="/libros" class="nav-link" id="nav-libros" style="display:none;">Libros</a>
+        </div></nav>
+    </header>
+
+    <main class="dashboard-main">
+        <section class="metrics-grid" id="metrics-grid">
+            <div class="metric-card skeleton skel-metric"></div>
+            <div class="metric-card skeleton skel-metric"></div>
+            <div class="metric-card skeleton skel-metric"></div>
+            <div class="metric-card skeleton skel-metric"></div>
+            <div class="metric-card skeleton skel-metric"></div>
+        </section>
+
+        <section class="charts-grid">
+            <div class="chart-card">
+                <h3>📊 Estado de reservas</h3>
+                <div class="chart-wrap"><canvas id="chart-reservas"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <h3>📚 Disponibilidad del catálogo</h3>
+                <div class="chart-wrap"><canvas id="chart-libros"></canvas></div>
+            </div>
+        </section>
+
+        <section class="dashboard-table-section">
+            <div class="section-header">
+                <h2>📋 Consultas Recientes</h2>
+                <button class="btn-trash" onclick="borrarConsultas()">🗑️ Borrar historial</button>
+            </div>
+            <div class="table-container"><table class="data-table"><thead><tr><th>Consulta</th><th>Resultados</th><th>Fecha</th></tr></thead><tbody id="table-consultas"><tr><td colspan="3" style="text-align:center;padding:1.5rem;color:var(--text-muted);">Cargando...</td></tr></tbody></table></div>
+        </section>
+
+        <section class="dashboard-table-section" style="margin-top:1.5rem;">
+            <div class="section-header">
+                <h2>📝 Reservas</h2>
+                <button class="btn-trash" onclick="borrarReservas()">🗑️ Borrar historial</button>
+            </div>
+            <div class="table-container"><table class="data-table"><thead><tr><th>Alumno</th><th>Libro</th><th>Fecha</th><th>Estado</th></tr></thead><tbody id="table-reservas"><tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted);">Cargando...</td></tr></tbody></table></div>
+        </section>
+    </main>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+    let chartR=null, chartL=null;
+    const CD={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:12}}}}};
+
+    function initCharts(r,m){
+        if(chartR) chartR.destroy(); if(chartL) chartL.destroy();
+        const rc={pendiente:0,prestado:0,devuelto:0};
+        r.forEach(x=>{if(rc[x.estado]!==undefined)rc[x.estado]++;});
+        chartR=new Chart(document.getElementById('chart-reservas'),{type:'doughnut',data:{labels:['⏳ Pendientes','📖 Prestados','✅ Devueltos'],datasets:[{data:[rc.pendiente,rc.prestado,rc.devuelto],backgroundColor:['#f59e0b','#3b82f6','#22c55e'],borderColor:'#151e32',borderWidth:3}]},options:{...CD,cutout:'65%'}});
+        const disp=m.disponibles||0,prest=(m.total_libros||0)-disp;
+        chartL=new Chart(document.getElementById('chart-libros'),{type:'bar',data:{labels:['Disponibles','Prestados'],datasets:[{label:'Libros',data:[disp,prest],backgroundColor:['rgba(34,197,94,0.7)','rgba(239,68,68,0.7)'],borderColor:['#22c55e','#ef4444'],borderWidth:2,borderRadius:8}]},options:{...CD,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8'},grid:{color:'#1e293b'}},x:{ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+    }
+
+    async function load(){
+        try{
+            const[m,r]=await Promise.all([fetch('/api/metricas').then(r=>r.json()),fetch('/api/reservas').then(r=>r.json())]);
+            document.getElementById('metrics-grid').innerHTML=`
+                <div class="metric-card"><div class="metric-icon">🔍</div><div class="metric-info"><h3>${m.total_consultas}</h3><p>Consultas</p></div></div>
+                <div class="metric-card"><div class="metric-icon">📚</div><div class="metric-info"><h3>${m.total_libros}</h3><p>Total Libros</p></div></div>
+                <div class="metric-card"><div class="metric-icon">✅</div><div class="metric-info"><h3>${m.disponibles}</h3><p>Disponibles</p></div></div>
+                <div class="metric-card"><div class="metric-icon">👥</div><div class="metric-info"><h3>${m.total_alumnos}</h3><p>Alumnos</p></div></div>
+                <div class="metric-card"><div class="metric-icon">⏳</div><div class="metric-info"><h3>${m.reservas_pendientes}</h3><p>Pendientes</p></div></div>`;
+            document.getElementById('table-consultas').innerHTML=m.consultas_recientes?.length?m.consultas_recientes.map(q=>`<tr><td>${q.consulta}</td><td>${q.resultados}</td><td>${q.timestamp.split(' ')[0]}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin consultas recientes</td></tr>';
+            document.getElementById('table-reservas').innerHTML=r?.length?r.map(x=>{
+                const[bc,bl,bt]=x.estado==='prestado'?['badge-prestado','📖 Prestado',`<button class="btn-devolver" onclick="marcarDevuelto(${x.id})">✅ Devuelto</button>`]:x.estado==='devuelto'?['badge-devuelto','✅ Devuelto','']:['badge-pendiente','⏳ Pendiente',`<button class="btn-prestar" onclick="marcarPrestado(${x.id})">📤 Marcar Prestado</button>`];
+                return`<tr><td>${x.nombre}</td><td>${x.libro_titulo||'General'}</td><td>${x.fecha_reserva?.split(' ')[0]||'-'}</td><td><span class="${bc}">${bl}</span> ${bt}</td></tr>`;
+            }).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Sin reservas</td></tr>';
+            initCharts(r||[],m);
+        }catch(e){console.error(e);}
+    }
+
+    async function marcarPrestado(id){if(!confirm('¿Marcar como Prestado?'))return;const r=await fetch(`/api/reservas/${id}/prestar`,{method:'PUT'});if(r.ok)load();}
+    async function marcarDevuelto(id){if(!confirm('¿Confirmar devolución?'))return;const r=await fetch(`/api/reservas/${id}/devolver`,{method:'PUT'});if(r.ok)load();}
+    async function borrarConsultas(){if(!confirm('⚠️ ¿Borrar TODO el historial de consultas?'))return;const r=await fetch('/api/metricas',{method:'DELETE'});if(r.ok)load();}
+    async function borrarReservas(){if(!confirm('⚠️ ¿Borrar TODO el historial de reservas?'))return;const r=await fetch('/api/reservas',{method:'DELETE'});if(r.ok)load();}
+
+    load(); setInterval(load,60000);
+    </script>
+</body>
+</html>
